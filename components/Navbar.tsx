@@ -7,15 +7,16 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import ThemeToggle from './ThemeToggle';
 
-const links = [
+const linksBase = [
   { href: '/', label: 'Home' },
   { href: '/products', label: 'Products' },
-  { href: '/recommendations', label: 'Recommendations' },
   { href: '/vendor/dashboard', label: 'Vendor' },
-  { href: '/vr', label: 'VR Showroom' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
 ];
+
+
+
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -36,8 +37,10 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-8 text-sm font-medium text-[var(--color-foreground-muted)] lg:flex">
-          {links.map((item) => {
+          {[...linksBase, ...(user?.role === 'customer' ? [{ href: '/vr', label: 'VR Showroom' }] : [])].map((item) => {
+
             const isActive = item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
+
             return (
               <Link
                 key={item.href}
@@ -84,10 +87,12 @@ export default function Navbar() {
       <div className={`lg:hidden overflow-hidden transition-all duration-300 ${menuOpen ? 'max-h-[420px]' : 'max-h-0'}`}>
         <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-6 py-4 text-sm text-[var(--color-foreground-muted)] shadow-sm">
           <div className="space-y-3">
-            {links.map((item) => (
+            {[...linksBase, ...(user?.role === 'customer' ? [{ href: '/vr', label: 'VR Showroom' }] : [])].map((item) => (
+
               <Link
                 key={item.href}
                 href={item.href}
+
                 onClick={() => setMenuOpen(false)}
                 className={`block rounded-2xl px-3 py-3 transition hover:bg-[var(--color-surface-alt)] ${pathname === item.href ? 'bg-[var(--color-surface-alt)] text-[var(--color-foreground)]' : ''}`}
               >
