@@ -2,7 +2,8 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]/90 py-14 text-[var(--color-foreground)] backdrop-blur-xl">
+    <footer className="border-t border-white/10 bg-gradient-to-b from-[#0058a3] to-[#003d70] py-14 text-white backdrop-blur-xl">
+
       <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-4">
         <div className="space-y-4">
           <div className="flex items-center gap-3">

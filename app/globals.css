@@ -1,19 +1,33 @@
 @import "tailwindcss";
 
+
 :root {
   color-scheme: light;
-  --background: #edf6ff;
-  --surface: rgba(255,255,255,0.94);
+
+  /* IKEA-inspired calm palette */
+  --background: #f5f7fb;
+  --surface: rgba(255, 255, 255, 0.94);
   --surface-strong: #ffffff;
-  --foreground: #0f172a;
-  --muted: #475569;
-  --border: rgba(15,23,42,0.12);
-  --primary: #0f172a;
-  --accent: #0058a3;
-  --accent-strong: #003d70;
-  --accent-soft: rgba(0,88,163,0.12);
-  --brand-surface: rgba(0,88,163,0.08);
-  --shadow: 0 24px 70px rgba(15,23,42,0.08);
+
+  --foreground: #111827; /* warm near-black */
+  --muted: #5b6474;
+  --border: rgba(17, 24, 39, 0.12);
+
+  --primary: #111827;
+
+  /* Blue accents close to existing app usage */
+  --accent: #0077c8; /* primary IKEA-like blue */
+  --accent-strong: #005fae;
+  --accent-soft: rgba(0, 119, 200, 0.12);
+
+  /* Compatibility: pages use hardcoded IKEA-blue-like hex values */
+  --hard-accent: #0058a3;
+  --hard-accent-strong: #003d70;
+
+
+  --brand-surface: rgba(0, 119, 200, 0.08);
+
+  --shadow: 0 24px 70px rgba(17, 24, 39, 0.08);
 }
 
 html {
@@ -69,13 +83,14 @@ img {
   --muted: #94a3b8;
   --border: rgba(148,163,184,0.16);
   --primary: #e2e8f0;
-  --accent: #60a5fa;
-  --accent-strong: #2563eb;
-  --accent-soft: rgba(96,165,250,0.16);
+  /* IKEA-like accents in dark mode */
+  --accent: #5cc7ff;
+  --accent-strong: #2aa7ff;
+  --accent-soft: rgba(92,199,255,0.18);
   --accent-warm: #f59e0b;
   --shadow: 0 24px 70px rgba(2,6,23,0.34);
   background-image:
-    radial-gradient(circle at top left, rgba(96,165,250,0.14), transparent 30%),
+    radial-gradient(circle at top left, rgba(92,199,255,0.14), transparent 30%),
     radial-gradient(circle at 85% 8%, rgba(245,158,11,0.12), transparent 24%),
     linear-gradient(120deg, rgba(7,12,24,0.7), transparent 40%);
 }

@@ -4,6 +4,8 @@ import { AuthProvider } from "../components/AuthProvider";
 import "./globals.css";
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import TabIndicator from '../components/TabIndicator';
+
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -31,8 +33,10 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} page-shell theme-shell antialiased`}>
         <AuthProvider>
           <Navbar />
+          <TabIndicator />
           <main className="main-content">{children}</main>
           <Footer />
+
         </AuthProvider>
       </body>
     </html>

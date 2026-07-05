@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { products } from '../../lib/mockData';
-import RequireAuth from '../../components/RequireAuth';
+import { products } from '../../../lib/mockData';
+import RequireAuth from '../../../components/RequireAuth';
 
 export default function RecommendationsPage() {
   const featured = products.slice(0, 4);
@@ -25,9 +25,7 @@ export default function RecommendationsPage() {
                 </h1>
 
                 <p className="max-w-2xl text-slate-600 dark:text-slate-400">
-                  Your browsing history and AI preference model surface
-                  products that match your taste, from premium furniture to
-                  immersive 3D collections.
+                  Your browsing history and AI preference model surface products that match your taste, from premium furniture to immersive 3D collections.
                 </p>
               </div>
 
@@ -54,9 +52,7 @@ export default function RecommendationsPage() {
                       {product.category}
                     </p>
 
-                    <h2 className="mt-2 text-2xl font-semibold text-brand">
-                      {product.name}
-                    </h2>
+                    <h2 className="mt-2 text-2xl font-semibold text-brand">{product.name}</h2>
                   </div>
 
                   <div className="rounded-3xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 dark:bg-slate-800 dark:text-white">
@@ -64,9 +60,7 @@ export default function RecommendationsPage() {
                   </div>
                 </div>
 
-                <p className="mb-5 text-slate-600 dark:text-slate-400">
-                  {product.shortDescription}
-                </p>
+                <p className="mb-5 text-slate-600 dark:text-slate-400">{product.shortDescription}</p>
 
                 <div className="mb-6 flex flex-wrap gap-3">
                   {product.tags.slice(0, 3).map((tag) => (
@@ -94,14 +88,10 @@ export default function RecommendationsPage() {
           <section className="mt-16 rounded-[32px] bg-brand p-10 text-white">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-3xl font-bold">
-                  AI Recommendations Improve Over Time
-                </h2>
+                <h2 className="text-3xl font-bold">AI Recommendations Improve Over Time</h2>
 
                 <p className="mt-3 max-w-3xl text-blue-100">
-                  Every interaction helps our recommendation engine understand
-                  your preferences better, delivering smarter and more
-                  personalized product suggestions each time you visit.
+                  Every interaction helps our recommendation engine understand your preferences better, delivering smarter and more personalized product suggestions each time you visit.
                 </p>
               </div>
 
@@ -119,3 +109,4 @@ export default function RecommendationsPage() {
     </RequireAuth>
   );
 }
+

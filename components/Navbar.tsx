@@ -7,13 +7,8 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import ThemeToggle from './ThemeToggle';
 
-const linksBase = [
-  { href: '/', label: 'Home' },
-  { href: '/products', label: 'Products' },
-  { href: '/vendor/dashboard', label: 'Vendor' },
-  { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
-];
+// Links are computed inside the component (role-aware) so UI is consistent after login.
+
 
 
 
@@ -37,9 +32,18 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-8 text-sm font-medium text-[var(--color-foreground-muted)] lg:flex">
-          {[...linksBase, ...(user?.role === 'customer' ? [{ href: '/vr', label: 'VR Showroom' }] : [])].map((item) => {
-
+          {(
+            [
+              { href: '/', label: 'Home' },
+              { href: '/products', label: 'Products' },
+              ...(user?.role === 'vendor' ? [{ href: '/vendor/dashboard', label: 'Vendor' }] : []),
+              ...(user?.role === 'customer' ? [{ href: '/vr', label: 'VR Showroom' }] : []),
+              { href: '/about', label: 'About' },
+              { href: '/contact', label: 'Contact' },
+            ]
+          ).map((item) => {
             const isActive = item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
+
 
             return (
               <Link
@@ -87,7 +91,16 @@ export default function Navbar() {
       <div className={`lg:hidden overflow-hidden transition-all duration-300 ${menuOpen ? 'max-h-[420px]' : 'max-h-0'}`}>
         <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-6 py-4 text-sm text-[var(--color-foreground-muted)] shadow-sm">
           <div className="space-y-3">
-            {[...linksBase, ...(user?.role === 'customer' ? [{ href: '/vr', label: 'VR Showroom' }] : [])].map((item) => (
+            {(
+              [
+                { href: '/', label: 'Home' },
+                { href: '/products', label: 'Products' },
+                ...(user?.role === 'vendor' ? [{ href: '/vendor/dashboard', label: 'Vendor' }] : []),
+                ...(user?.role === 'customer' ? [{ href: '/vr', label: 'VR Showroom' }] : []),
+                { href: '/about', label: 'About' },
+                { href: '/contact', label: 'Contact' },
+              ]
+            ).map((item) => (
 
               <Link
                 key={item.href}
