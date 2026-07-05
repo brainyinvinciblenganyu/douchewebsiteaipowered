@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../../components/AuthProvider';
+import { useBackendAuth as useAuth } from '../../../components/BackendAuthProvider';
 import { ArrowRight, Building2, Loader2, ShieldCheck, Sparkles, User } from 'lucide-react';
 
 type Role = 'customer' | 'vendor';

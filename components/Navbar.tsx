@@ -1,10 +1,10 @@
-'use client';
+ 'use client';
 
 import Link from 'next/link';
 import { useState } from 'react';
 import { ShoppingCart, User, LogOut, Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useAuth } from './AuthProvider';
+import { useBackendAuth as useAuth } from './BackendAuthProvider';
 import ThemeToggle from './ThemeToggle';
 
 // Links are computed inside the component (role-aware) so UI is consistent after login.
@@ -121,6 +121,7 @@ export default function Navbar() {
             >
               Cart
             </Link>
+
             {user ? (
               <>
                 <Link
