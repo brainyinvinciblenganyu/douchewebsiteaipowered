@@ -72,6 +72,8 @@ export default function LoginPage() {
     setError(null);
 
     const result = await login(email, password);
+
+
     if (result.success) {
       setMessage('Login successful. Redirecting...');
       router.replace(result.user?.role === 'vendor' ? '/vendor/dashboard' : '/recommendations');

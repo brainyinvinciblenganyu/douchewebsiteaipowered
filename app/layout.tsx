@@ -1,21 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { BackendAuthProvider as AuthProvider } from "../components/BackendAuthProvider";
 import "./globals.css";
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import TabIndicator from '../components/TabIndicator';
 
-
-const geistSans = Geist({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-});
+const fontVariables = {
+  '--font-sans': 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  '--font-mono': '"SFMono-Regular", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+};
 
 export const metadata: Metadata = {
   title: "Douche • AI-Powered 3D E-Commerce",
@@ -30,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} page-shell theme-shell antialiased`}>
+      <body className="page-shell theme-shell antialiased" style={fontVariables}>
         <AuthProvider>
           <Navbar />
           <TabIndicator />

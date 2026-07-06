@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './AuthProvider';
+import { useBackendAuth } from './BackendAuthProvider';
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ interface RequireAuthProps {
 
 export default function RequireAuth({ children, role, fallbackPath }: RequireAuthProps) {
   const router = useRouter();
-  const { user, isHydrated } = useAuth();
+  const { user, isHydrated } = useBackendAuth();
 
   useEffect(() => {
     if (!isHydrated) return;

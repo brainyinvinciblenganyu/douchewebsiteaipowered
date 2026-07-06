@@ -1,38 +1,23 @@
 import { NextResponse } from 'next/server';
-
 import { NextRequest } from 'next/server';
-import { getSessionFromRequest } from '../../../../backend/server/auth/session';
-import { findUserById } from '../../../../backend/server/db/queries';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001';
 
 export async function GET(req: NextRequest) {
-  try {
-    const session = getSessionFromRequest(req);
+  const backendRes = await fetch(`${BACKEND_URL}/api/auth/me`, {
+    method: 'GET',
+    headers: {
+      cookie: req.headers.get('cookie') || '',
+    },
+  });
 
-    if (!session) {
-      return NextResponse.json({ user: null }, { status: 200 });
-    }
-
-    const user = await findUserById(session.userId);
-    if (!user) {
-      return NextResponse.json({ user: null }, { status: 200 });
-    }
-
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-        membership: null,
-        location: user.location,
-        preferences: [],
-        avatar: null,
-        bio: null,
-      },
-    });
-  } catch (e) {
-    console.error('me error', e);
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
-  }
+  const text = await backendRes.text();
+  return new NextResponse(text, {
+    status: backendRes.status,
+    headers: {
+      'content-type': backendRes.headers.get('content-type') || 'application/json',
+      'set-cookie': backendRes.headers.get('set-cookie') || '',
+    },
+  });
 }
 
