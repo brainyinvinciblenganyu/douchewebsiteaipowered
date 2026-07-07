@@ -1,17 +1,30 @@
 import { NextResponse } from 'next/server';
-import { scoreProducts } from '../../../lib/recommendationEngine';
-import type { UserInteractions } from '../../../lib/interactionTracker';
+import { NextRequest } from 'next/server';
 
-export async function POST(req: Request) {
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001';
+
+export async function GET(req: NextRequest) {
   try {
-    const body = (await req.json()) as Partial<UserInteractions> & { message?: string; limit?: number };
-    const suggestions = scoreProducts(body, body.message ?? '', body.limit ?? 4);
-
-    return NextResponse.json({
-      suggestions,
-      count: suggestions.length,
+    const backendRes = await fetch(`${BACKEND_URL}/api/recommendations`, {
+      method: 'GET',
+      headers: {
+        cookie: req.headers.get('cookie') || '',
+      },
     });
-  } catch {
+
+    if (!backendRes.ok) {
+      const errorText = await backendRes.text();
+      return NextResponse.json(
+        { error: `Backend returned error: ${backendRes.status}` },
+        { status: backendRes.status }
+      );
+    }
+
+    const data = await backendRes.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Failed to proxy recommendations:', error);
     return NextResponse.json({ error: 'Failed to generate recommendations' }, { status: 500 });
   }
 }
+

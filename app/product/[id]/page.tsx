@@ -1,11 +1,12 @@
 'use client';
 import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 // Navbar and Footer provided via app/layout.tsx
-import Image from 'next/image';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Heart, Star } from 'lucide-react';
 import { products, reviews } from '../../../lib/mockData';
+import ModelViewer from '../../../components/ModelViewer';
+import { trackEvent } from '../../../lib/track';
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -13,6 +14,77 @@ export default function ProductPage() {
     () => (id ? products.find((p) => p.id === Number(id)) || null : null),
     [id],
   );
+
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [ratingHover, setRatingHover] = useState<number | null>(null);
+
+  // Sync wishlist status from localStorage on mount/product change
+  useEffect(() => {
+    if (!product) return;
+    const wishlist = JSON.parse(localStorage.getItem('douche_wishlist') || '[]');
+    setIsWishlisted(wishlist.includes(product.id));
+
+    const ratings = JSON.parse(localStorage.getItem('douche_ratings') || '{}');
+    if (ratings[product.id]) {
+      setUserRating(ratings[product.id]);
+    } else {
+      setUserRating(null);
+    }
+  }, [product]);
+
+  // Track product view interaction
+  useEffect(() => {
+    if (product) {
+      trackEvent({
+        eventType: 'view',
+        productId: product.id,
+        category: product.category,
+        brand: product.vendorName,
+      });
+    }
+  }, [product]);
+
+  const toggleWishlist = () => {
+    if (!product) return;
+    const wishlist: number[] = JSON.parse(localStorage.getItem('douche_wishlist') || '[]');
+    let updated: number[];
+    let type: 'wishlist_add' | 'wishlist_remove';
+
+    if (wishlist.includes(product.id)) {
+      updated = wishlist.filter((id) => id !== product.id);
+      type = 'wishlist_remove';
+      setIsWishlisted(false);
+    } else {
+      updated = [...wishlist, product.id];
+      type = 'wishlist_add';
+      setIsWishlisted(true);
+    }
+
+    localStorage.setItem('douche_wishlist', JSON.stringify(updated));
+    trackEvent({
+      eventType: type,
+      productId: product.id,
+      category: product.category,
+      brand: product.vendorName,
+    });
+  };
+
+  const handleRate = (stars: number) => {
+    if (!product) return;
+    setUserRating(stars);
+    const ratings = JSON.parse(localStorage.getItem('douche_ratings') || '{}');
+    ratings[product.id] = stars;
+    localStorage.setItem('douche_ratings', JSON.stringify(ratings));
+
+    trackEvent({
+      eventType: 'rate',
+      productId: product.id,
+      rating: stars,
+      category: product.category,
+      brand: product.vendorName,
+    });
+  };
 
   const addToCart = () => {
     if (!product) return;
@@ -36,6 +108,15 @@ export default function ProductPage() {
     }
 
     localStorage.setItem('douche_cart', JSON.stringify(cartItems));
+
+    // Track cart addition interaction
+    trackEvent({
+      eventType: 'cart_add',
+      productId: product.id,
+      category: product.category,
+      brand: product.vendorName,
+    });
+
     alert('Product added to cart successfully!');
   };
 
@@ -73,7 +154,7 @@ export default function ProductPage() {
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="rounded-[32px] overflow-hidden border border-slate-200 bg-slate-100 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div className="h-[520px] w-full relative">
-                  <Image src={product.images?.[0] || '/models/.keep'} alt={product.name} fill className="object-cover" />
+                  <ModelViewer modelUrl={`/models/${product.model}`} />
                 </div>
               </div>
 
@@ -98,14 +179,56 @@ export default function ProductPage() {
                   <p className="mt-3 text-slate-600 dark:text-slate-400">Experience immersive 3D preview and request this item directly through our purchase request system.</p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                {/* Interactive Rating Component */}
+                <div className="rounded-3xl border border-slate-200/60 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/40">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 mb-3">Rate this product</p>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => handleRate(star)}
+                        onMouseEnter={() => setRatingHover(star)}
+                        onMouseLeave={() => setRatingHover(null)}
+                        className="transition hover:scale-115 text-amber-400 focus:outline-none"
+                      >
+                        <Star
+                          size={24}
+                          className={
+                            star <= (ratingHover ?? userRating ?? 0)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-300 dark:text-slate-600'
+                          }
+                        />
+                      </button>
+                    ))}
+                    {userRating && (
+                      <span className="ml-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                        ({userRating}★ rated)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto]">
                   <button
                     onClick={addToCart}
                     className="rounded-3xl bg-slate-950 px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800"
                   >
                     Add to Cart
                   </button>
-                  <Link href="/cart" className="rounded-3xl border border-slate-200 px-6 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900/80">
+                  <button
+                    onClick={toggleWishlist}
+                    className={`flex items-center justify-center rounded-3xl border p-4 transition ${
+                      isWishlisted
+                        ? 'border-rose-200 bg-rose-50 text-rose-500 dark:border-rose-900/40 dark:bg-rose-950/30'
+                        : 'border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-900'
+                    }`}
+                    title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                  >
+                    <Heart size={20} className={isWishlisted ? 'fill-rose-500 text-rose-500' : ''} />
+                  </button>
+                  <Link href="/cart" className="rounded-3xl border border-slate-200 px-6 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900/80 inline-flex items-center justify-center">
                     Review in cart
                   </Link>
                 </div>

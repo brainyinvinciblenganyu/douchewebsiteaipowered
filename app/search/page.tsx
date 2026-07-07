@@ -1,13 +1,28 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { categories, products } from '../../lib/mockData';
 import { Search } from 'lucide-react';
+import { trackEvent } from '../../lib/track';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    const timer = setTimeout(() => {
+      trackEvent({
+        eventType: 'search',
+        query: trimmed,
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const categoryOptions = useMemo(
     () => ['All', ...Array.from(new Set(categories.map((category) => category.name)))],

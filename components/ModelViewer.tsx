@@ -23,7 +23,7 @@ export default function ModelViewer({ modelUrl }: { modelUrl: string }) {
         <directionalLight position={[-5, -5, -5]} intensity={0.5} />
 
         <Suspense fallback={null}>
-          <Bounds fit clip observe margin={1.2}>
+          <Bounds fit clip observe margin={0.95}>
             <Center>
               <Model url={modelUrl} />
             </Center>

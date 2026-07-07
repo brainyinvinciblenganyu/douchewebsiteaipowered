@@ -4,6 +4,9 @@ import express, { type Request, type Response } from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import authRoutes from './auth/index.js';
+import recommendationRoutes from './routes/recommendation.routes.js';
+import productRoutes from './routes/products.routes.js';
+import { initDatabase } from './db/init.js';
 
 function loadDotEnvLocal() {
   try {
@@ -25,10 +28,11 @@ function loadDotEnvLocal() {
 }
 
 loadDotEnvLocal();
+await initDatabase();
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -58,10 +62,13 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 
 const port = Number(process.env.BACKEND_PORT || 3001);
 app.listen(port, () => {
   console.log(`✓ Backend running on port ${port}`);
   console.log('✓ Auth routes mounted at /api/auth');
+  console.log('✓ Recommendation routes mounted at /api/recommendations');
 });
 

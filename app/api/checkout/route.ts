@@ -57,6 +57,27 @@ export async function POST(req: Request) {
 
     tx();
 
+    // Track purchase behavior in PostgreSQL
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001';
+    for (const it of items) {
+      try {
+        await fetch(`${BACKEND_URL}/api/recommendations/track`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            cookie: req.headers.get('cookie') || '',
+          },
+          body: JSON.stringify({
+            eventType: 'purchase',
+            productId: Number(it.productId),
+            metadata: { quantity: Number(it.quantity) },
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to log purchase interaction:', err);
+      }
+    }
+
     return NextResponse.json({
       status: 'success',
       orderId,

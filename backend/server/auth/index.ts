@@ -50,7 +50,10 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
 authRouter.post('/register', async (req: Request, res: Response) => {
   try {
+    console.log('--- REGISTER REQUEST RECEIVED ---');
+    console.log('Request Body:', req.body);
     const parsed = registerSchema.parse(req.body);
+    console.log('Parsed Zod Schema:', parsed);
     const existing = await findUserByEmail(parsed.email);
     if (existing) {
       return res.status(409).json({ error: 'Email already in use' });

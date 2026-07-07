@@ -3,9 +3,9 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 // Navbar and Footer are provided globally via app/layout.tsx
-import Image from 'next/image';
 import { categories, products, vendors } from '../lib/mockData';
 import { ArrowRight, Globe, Sparkles, TrendingUp, ShieldCheck, Users } from 'lucide-react';
+import ModelViewer from '../components/ModelViewer';
 
 const stats = [
   { label: 'Personalized matches', value: '148+', icon: Sparkles },
@@ -62,12 +62,7 @@ export default function Home() {
           <div className="surface-card space-y-6 overflow-hidden rounded-[36px] p-6">
             <div className="overflow-hidden rounded-[32px] border border-slate-100/80 bg-slate-900/5 dark:border-slate-700/70">
               <div className="relative h-[420px] w-full overflow-hidden lg:h-[500px]">
-                <Image
-                  src={heroProduct.images?.[0] || '/models/.keep'}
-                  alt={heroProduct.name}
-                  fill
-                  className="object-cover"
-                />
+                <ModelViewer modelUrl={`/models/${heroProduct.model}`} />
               </div>
             </div>
             <div className="space-y-3">
