@@ -6,6 +6,8 @@ import cors from 'cors';
 import authRoutes from './auth/index.js';
 import recommendationRoutes from './routes/recommendation.routes.js';
 import productRoutes from './routes/products.routes.js';
+
+import { productAssetUpload } from './middleware/uploadProductAsset.js';
 import { initDatabase } from './db/init.js';
 
 function loadDotEnvLocal() {
@@ -62,7 +64,17 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
+// Accept vendor product creation payloads.
+// Supports multipart/form-data uploads for 3D files.
+app.use(
+  '/api/products',
+  productAssetUpload.fields([
+    { name: 'asset_file', maxCount: 1 },
+    { name: 'file', maxCount: 1 },
+    { name: 'model', maxCount: 1 },
+  ]),
+  productRoutes,
+);
 app.use('/api/recommendations', recommendationRoutes);
 
 const port = Number(process.env.BACKEND_PORT || 3001);
