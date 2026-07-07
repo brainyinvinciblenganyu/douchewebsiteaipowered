@@ -27,7 +27,7 @@ export default function Navbar() {
           </div>
           <div>
             <p className="text-base font-semibold uppercase tracking-[0.24em] text-[var(--color-foreground)]">Douche</p>
-            <p className="text-sm text-[var(--color-foreground-muted)]">AI Personalized Commerce</p>
+            <p className="text-sm text-[var(--color-foreground-muted)]">AI customized Commerce</p>
           </div>
         </Link>
 

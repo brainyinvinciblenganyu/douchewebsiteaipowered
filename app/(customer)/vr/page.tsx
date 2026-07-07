@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 // Navbar and Footer provided via app/layout.tsx
-import Image from 'next/image';
 import { products } from '../../../lib/mockData';
 import { useEffect } from 'react';
 import { Box, Package, ShoppingBag, Table } from 'lucide-react';
+import ModelViewer from '../../../components/ModelViewer';
 
 const styles = `
   @keyframes slideInLeft {
@@ -304,11 +304,11 @@ export default function VRPage() {
                     selectedProduct === product.id ? 'ring-4 ring-[#0058a3]' : ''
                   }`}
                 >
-                  <div className="h-[300px] bg-[#f5f5f5] relative">
+                  <div className="h-[380px] bg-[#f5f5f5] relative">
                     {(() => {
                       const p = products.find((pr) => pr.id === product.id);
-                      const src = p?.images?.[0] || '/models/.keep';
-                      return <Image src={src} alt={product.name} fill className="object-cover" />;
+                      const modelUrl = p ? `/models/${p.model}` : '';
+                      return modelUrl ? <ModelViewer modelUrl={modelUrl} /> : null;
                     })()}
                   </div>
                   <div className="p-5 flex flex-col flex-grow">
@@ -338,8 +338,8 @@ export default function VRPage() {
               <div className="w-full md:w-1/2 h-96 relative rounded-lg overflow-hidden">
                 {(() => {
                   const p = products.find((pr) => pr.id === selectedProduct);
-                  const src = p?.images?.[0] || '/models/.keep';
-                  return <Image src={src} alt={p?.name || 'Preview'} fill className="object-cover" />;
+                  const modelUrl = p ? `/models/${p.model}` : '';
+                  return modelUrl ? <ModelViewer modelUrl={modelUrl} /> : null;
                 })()}
               </div>
               <div className="flex-1">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, Building2, Loader2, ShieldCheck, Sparkles, User } from 'lucide-react';
 import { useBackendAuth as useAuth } from '../../../components/BackendAuthProvider';
+import { getAuthApiUrl } from '../../../lib/apiConfig';
 
 type Role = 'customer' | 'vendor';
 
@@ -77,27 +78,52 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!validate()) return;
 
-    // UI-only “functional” behavior in this codebase:
-    // - Auth is demo-based (localStorage) and only accepts predefined demo credentials.
-    // - We map the registration role to the expected demo email.
-    // - The register form remains role-based as requested.
-
-    const expected = role === 'vendor' ? 'samuel@kokora.com' : 'aisha@douche.com';
-    const expectedPassword = role === 'vendor' ? 'vendor123' : 'customer123';
-
     setIsSubmitting(true);
     setError(null);
     setMessage(null);
 
     try {
-      const result = await login(expected, expectedPassword);
-      if (!result.success) {
-        setError(result.message || 'Registration failed.');
+      const payload: {
+        email: string;
+        password: string;
+        role: 'customer' | 'vendor';
+        name?: string;
+        company_name?: string;
+        location?: string;
+      } = {
+        email: email.trim(),
+        password,
+        role,
+      };
+
+      if (role === 'customer') {
+        payload.name = name.trim();
+      } else {
+        payload.company_name = companyName.trim();
+        payload.location = location.trim();
+      }
+
+      const res = await fetch(getAuthApiUrl('/register'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data?.error || data?.message || 'Registration failed.');
         return;
       }
 
+      // Backend sets the session cookie; hydrate current user via /api/auth/me.
       setMessage('Account created. Redirecting…');
-      router.replace(result.user?.role === 'vendor' ? '/vendor/dashboard' : '/recommendations');
+      const me = await fetch(getAuthApiUrl('/me'), { method: 'GET', credentials: 'include' });
+      const meData = await me.json().catch(() => ({}));
+      const newUser = (meData as { user?: { role?: string } } | undefined)?.user;
+
+      router.replace(newUser?.role === 'vendor' ? '/vendor/dashboard' : '/recommendations');
     } catch {
       setError('Registration failed.');
     } finally {
@@ -261,9 +287,11 @@ export default function RegisterPage() {
             {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 text-sm text-slate-300">
-              <p className="font-semibold text-white">Demo note</p>
-              <p className="mt-1">This project uses demo accounts. Register will sign you in to the selected role’s demo account.</p>
+              <p className="font-semibold text-white">Registration note</p>
+              <p className="mt-1">Your account will be created in the backend and you will be signed in automatically.</p>
             </div>
+
+
 
             <button
               type="submit"

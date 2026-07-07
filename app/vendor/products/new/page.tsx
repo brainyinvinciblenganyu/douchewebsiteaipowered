@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import RequireAuth from '../../../../components/RequireAuth';
+import { useBackendAuth } from '../../../../components/BackendAuthProvider';
 import { categories } from '../../../../lib/mockData';
 import { addVendorDraft, getVendorDrafts, type VendorDraft } from '../../../../lib/vendorDrafts';
 import ModelViewer from '../../../../components/ModelViewer';
@@ -28,9 +29,31 @@ type PreviewVersion = {
   versionId: string;
   modelUrl: string;
   generatedAt: string;
+  fileName?: string;
+  sourceType?: '3d-upload';
 };
 
+const ACCEPTED_3D_EXTENSIONS = ['.glb', '.gltf', '.obj', '.fbx', '.stl', '.dae'];
+const ACCEPTED_3D_MIME_TYPES = [
+  'model/gltf-binary',
+  'model/gltf+json',
+  'model/obj',
+  'model/fbx',
+  'application/octet-stream',
+];
+
+function isAccepted3DFile(file: File | null) {
+  if (!file) return false;
+
+  const name = file.name.toLowerCase();
+  const hasAcceptedExtension = ACCEPTED_3D_EXTENSIONS.some((extension) => name.endsWith(extension));
+  const hasAcceptedMime = ACCEPTED_3D_MIME_TYPES.includes(file.type.toLowerCase());
+
+  return hasAcceptedExtension || hasAcceptedMime;
+}
+
 export default function NewVendorProductPage() {
+  const { user } = useBackendAuth();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   const [draftId, setDraftId] = useState<string>('');
@@ -45,8 +68,9 @@ export default function NewVendorProductPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string>('');
+  const [uploadError, setUploadError] = useState<string>('');
 
-const [previewVersions, setPreviewVersions] = useState<PreviewVersion[]>([]);
+  const [previewVersions, setPreviewVersions] = useState<PreviewVersion[]>([]);
   const [activeVersionId, setActiveVersionId] = useState<string>('');
   const activePreview = useMemo(() => {
     return previewVersions.find((v: PreviewVersion) => v.versionId === activeVersionId) || null;
@@ -127,70 +151,104 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
   }, [draftId, name, category, description, tags, pricing, previewVersions, activeVersionId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] ?? null;
-    setSelectedFile(f);
+    const file = e.target.files?.[0] ?? null;
+    setUploadError('');
+
+    if (!file) {
+      setSelectedFile(null);
+      setStatus('');
+      return;
+    }
+
+    if (!isAccepted3DFile(file)) {
+      setSelectedFile(null);
+      setUploadError('Only 3D model files are supported. Please upload a converted 3D file such as .glb, .gltf, .obj, .fbx, .stl, or .dae. Static images are not accepted.');
+      setStatus('');
+      return;
+    }
+
+    setSelectedFile(file);
+    setStatus(`3D model ready to stage: ${file.name}`);
   };
 
   const canContinueStep1 = name.trim().length >= 2 && description.trim().length >= 10;
   const canContinueStep2 = pricing.price > 0 && pricing.currency.trim().length > 0;
-  const canContinueStep3 = previewVersions.length > 0;
+  const canContinueStep3 = previewVersions.length > 0 || Boolean(selectedFile);
+  const hasStaged3DFile = previewVersions.length > 0 || Boolean(selectedFile);
 
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     if (!selectedFile || isGenerating) return;
 
     setIsGenerating(true);
-    setStatus('Uploading image to AI engine...');
+    setUploadError('');
+    setStatus('Staging 3D file locally...');
 
-    try {
-      const formData = new FormData();
-      formData.append('image', selectedFile);
+    const version: PreviewVersion = {
+      versionId: uid(),
+      modelUrl: '',
+      generatedAt: new Date().toISOString(),
+      fileName: selectedFile.name,
+      sourceType: '3d-upload',
+    };
 
-      const response = await fetch('/api/generate-3d', {
-        method: 'POST',
-        body: formData,
-      });
+    setPreviewVersions((prev) => {
+      const next = [...prev, version];
+      return next.slice(-10);
+    });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.modelUrl) {
-        throw new Error(data?.detail || data?.error || 'Failed to generate model');
-      }
-
-      const version: PreviewVersion = {
-        versionId: uid(),
-        modelUrl: data.modelUrl,
-        generatedAt: new Date().toISOString(),
-      };
-
-      setPreviewVersions((prev) => {
-        const next = [...prev, version];
-        return next.slice(-10); // keep last 10
-      });
-
-      setActiveVersionId(version.versionId);
-      setStatus('Generation complete! Preview staged.');
-    } catch (err: unknown) {
-      setStatus(err instanceof Error ? err.message : 'Error generating model. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
+    setActiveVersionId(version.versionId);
+    setStatus(`3D file staged for review: ${selectedFile.name}`);
+    setIsGenerating(false);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!draftId) return;
     const drafts = getVendorDrafts();
     const existing = drafts.find((d) => d.id === draftId);
     if (!existing) return;
 
-    const published: VendorDraft = {
-      ...existing,
-      isPublished: true,
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          description,
+          category,
+          tags: tags
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean),
+          price: pricing.price,
+          currency: pricing.currency,
+          vendor_user_id: user?.id ? String(user.id) : null,
+          asset_name: selectedFile?.name ?? null,
+          asset_type: selectedFile?.type ?? 'application/octet-stream',
+          asset_size: selectedFile?.size ?? null,
+          asset_data: selectedFile ? await selectedFile.text().catch(() => '') : null,
+          asset_file: selectedFile ? await selectedFile.text().catch(() => '') : null,
+          status: 'published',
+        }),
+      });
 
-    addVendorDraft(published, { replace: true });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create product');
+      }
 
-    setStep(4);
+      const published: VendorDraft = {
+        ...existing,
+        isPublished: true,
+        updatedAt: new Date().toISOString(),
+      };
+
+      addVendorDraft(published, { replace: true });
+      setStatus('Product saved to the database.');
+      setStep(4);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create product';
+      setStatus(message);
+    }
   };
 
   const activePreviewUrl = activePreview?.modelUrl ?? '';
@@ -211,9 +269,9 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                 </Link>
 
                 <p className="mt-6 text-sm uppercase tracking-[0.3em] text-blue-200">Create product</p>
-                <h1 className="mt-3 text-4xl font-semibold text-white">Stage 3D preview before publishing</h1>
+                <h1 className="mt-3 text-4xl font-semibold text-white">Stage a 3D asset before publishing</h1>
                 <p className="mt-4 max-w-2xl text-blue-100">
-                  Draft your product metadata, set pricing, generate one or more preview versions (latest stays active), then publish.
+                  Draft your product metadata, set pricing, and upload a converted 3D file. Static images are not accepted.
                 </p>
               </div>
 
@@ -253,7 +311,7 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                         <span className={`text-sm font-semibold ${active ? 'text-white' : 'text-blue-200'}`}>#{s}</span>
                       )}
                       <span className="text-xs font-semibold text-blue-200">
-                        {s === 1 ? 'Metadata' : s === 2 ? 'Pricing' : s === 3 ? '3D Preview' : 'Review'}
+                        {s === 1 ? 'Metadata' : s === 2 ? 'Pricing' : s === 3 ? '3D Asset' : 'Review'}
                       </span>
                     </div>
                   </button>
@@ -394,7 +452,7 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                       disabled={!canContinueStep2}
                       className="flex-1 rounded-2xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Continue to 3D Preview
+                      Continue to 3D Asset
                     </button>
                   </div>
                 </div>
@@ -408,7 +466,7 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                     </p>
                   </div>
                   <p className="mt-4 text-sm text-blue-700">
-                    You can re-stage multiple preview versions before publishing.
+                    You can re-stage multiple 3D assets before publishing.
                   </p>
                 </div>
               </section>
@@ -417,26 +475,29 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
             {step === 3 && (
               <section className="mt-8 grid gap-6 lg:grid-cols-2">
                 <div className="rounded-[28px] border border-blue-200/50 bg-blue-600 p-6">
-                  <h2 className="text-xl font-semibold text-white">3) Stage 3D preview</h2>
+                  <h2 className="text-xl font-semibold text-white">3) Upload 3D model</h2>
+                  <p className="mt-2 text-sm text-blue-100">
+                    Vendors must upload a converted 3D file. Static images are not supported.
+                  </p>
 
                   <div className="mt-6 space-y-4">
                     <label className="block">
-                      <span className="text-sm font-semibold text-blue-100">Upload an image</span>
+                      <span className="text-sm font-semibold text-blue-100">Upload a 3D asset</span>
                       <div className="mt-2 border-2 border-dashed border-blue-300/50 rounded-xl p-6 text-center bg-blue-500/30">
                         <input
                           type="file"
                           className="hidden"
                           id="image-upload"
-                          accept="image/*"
+                          accept=".glb,.gltf,.obj,.fbx,.stl,.dae,model/gltf-binary,model/gltf+json,model/obj,model/fbx,application/octet-stream"
                           onChange={handleFileChange}
                         />
                         <label htmlFor="image-upload" className="cursor-pointer block">
                           <div className="flex items-center justify-center gap-2 text-blue-100">
                             <UploadCloud size={18} />
-                            <span className="text-sm font-semibold">Choose file</span>
+                            <span className="text-sm font-semibold">Choose 3D file</span>
                           </div>
                           <p className="mt-2 text-xs text-blue-200">
-                            Model versions will be kept; the newest becomes active.
+                            Accepted formats: GLB, GLTF, OBJ, FBX, STL, DAE.
                           </p>
                         </label>
                         {selectedFile && (
@@ -451,16 +512,20 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                       onClick={handleGenerate}
                       className="w-full rounded-2xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <ChevronRight size={16} />}
-                      {isGenerating ? 'Generating...' : 'Generate 3D preview'}
+                      {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                      {isGenerating ? 'Staging...' : 'Stage 3D file'}
                     </button>
 
+                    {uploadError && <p className="text-sm font-semibold text-rose-200">{uploadError}</p>}
                     {status && <p className="text-sm text-blue-100">{status}</p>}
+                    <p className="text-xs text-blue-200">
+                      This is the frontend-only upload step. The selected 3D file will be sent to the database once the backend is connected.
+                    </p>
 
                     <div className="rounded-2xl border border-blue-300/50 bg-blue-500/30 p-4">
-                      <p className="text-sm font-semibold text-white">Active preview</p>
+                      <p className="text-sm font-semibold text-white">Current 3D asset</p>
                       <p className="mt-1 text-xs text-blue-200">
-                        Latest staged version is active automatically.
+                        The staged file will be carried into the review step.
                       </p>
                       <div className="mt-3">
                         {activePreviewUrl ? (
@@ -468,8 +533,10 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                             <ModelViewer modelUrl={activePreviewUrl} />
                           </div>
                         ) : (
-                          <div className="h-[360px] rounded-xl border border-blue-300/50 bg-white/70 flex items-center justify-center text-sm text-blue-200">
-                            No preview yet. Upload an image and generate.
+                          <div className="h-[360px] rounded-xl border border-blue-300/50 bg-white/70 flex items-center justify-center text-sm text-blue-200 px-4 text-center">
+                            {previewVersions.length > 0
+                              ? 'A 3D asset is staged locally for review.'
+                              : 'No 3D file uploaded yet. Choose a converted 3D model to continue.'}
                           </div>
                         )}
                       </div>
@@ -478,15 +545,15 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                 </div>
 
                 <div className="rounded-[28px] border border-blue-200/50 bg-blue-50 p-6">
-                  <h3 className="text-xl font-semibold text-blue-900">Preview versions</h3>
+                  <h3 className="text-xl font-semibold text-blue-900">Staged 3D files</h3>
                   <p className="mt-2 text-sm text-blue-700">
-                    Keep multiple previews; click a version to make it active. Latest stays active by default.
+                    Keep the selected 3D asset ready for review and publish. Static images will be rejected.
                   </p>
 
                   <div className="mt-6 space-y-3">
                     {previewVersions.length === 0 ? (
                       <div className="rounded-3xl border border-blue-200/50 bg-white/70 p-4 text-sm text-blue-600">
-                        No versions staged yet.
+                        No 3D files staged yet.
                       </div>
                     ) : (
                       previewVersions
@@ -507,7 +574,7 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <p className="text-sm font-semibold text-blue-900">Version</p>
+                                  <p className="text-sm font-semibold text-blue-900">3D asset</p>
                                   <p className="mt-1 text-xs text-blue-600">
                                     {new Date(v.generatedAt).toLocaleString()}
                                   </p>
@@ -516,7 +583,9 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                                   <CheckCircle2 size={18} className="text-sky-600 shrink-0" />
                                 )}
                               </div>
-                              <p className="mt-2 text-xs text-blue-500 break-all">{v.modelUrl}</p>
+                              <p className="mt-2 text-xs text-blue-500 break-all">
+                                {v.fileName ? `File: ${v.fileName}` : 'Converted 3D file staged'}
+                              </p>
                             </button>
                           );
                         })
@@ -547,14 +616,14 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                       onClick={() => {
                         setPreviewVersions([]);
                         setActiveVersionId('');
-                        setStatus('Cleared staged previews.');
+                        setStatus('Cleared staged 3D files.');
                         setSelectedFile(null);
                       }}
                       disabled={previewVersions.length === 0 || isGenerating}
                       className="mt-4 w-full rounded-2xl border border-blue-300/50 bg-white px-4 py-3 text-sm font-semibold text-blue-900 transition hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       <RotateCcw size={16} />
-                      Clear staged previews
+                      Clear staged 3D files
                     </button>
                   )}
                 </div>
@@ -584,13 +653,14 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                   </div>
 
                   <div className="mt-4 rounded-3xl border border-blue-300/50 bg-blue-500/30 p-4">
-                    <p className="text-xs uppercase tracking-[0.24em] text-blue-200">Active preview</p>
-                    {activePreviewUrl ? (
-                      <div className="mt-3 h-[260px]">
-                        <ModelViewer modelUrl={activePreviewUrl} />
+                    <p className="text-xs uppercase tracking-[0.24em] text-blue-200">3D asset</p>
+                    {activePreview?.fileName ? (
+                      <div className="mt-3">
+                        <p className="text-sm font-semibold text-white">{activePreview.fileName}</p>
+                        <p className="mt-2 text-sm text-blue-100">Uploaded as a converted 3D asset and ready for backend submission.</p>
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-blue-200">No preview active.</p>
+                      <p className="mt-3 text-sm text-blue-200">No 3D asset staged yet.</p>
                     )}
                   </div>
 
@@ -600,12 +670,12 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                       onClick={() => setStep(3)}
                       className="flex-1 rounded-2xl border border-blue-300/50 bg-white px-4 py-3 text-sm font-semibold text-blue-900 transition hover:bg-blue-50"
                     >
-                      Back to previews
+                      Back to 3D upload
                     </button>
                     <button
                       type="button"
                       onClick={handlePublish}
-                      disabled={!activePreviewUrl || !canContinueStep2 || !canContinueStep1}
+                      disabled={!hasStaged3DFile || !canContinueStep2 || !canContinueStep1}
                       className="flex-1 rounded-2xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Publish product
@@ -621,9 +691,9 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                   </p>
 
                   <div className="mt-6 rounded-3xl border border-blue-200/50 bg-white/70 p-4">
-                    <p className="text-sm font-semibold text-blue-900">Staged versions</p>
+                    <p className="text-sm font-semibold text-blue-900">Staged 3D assets</p>
                     <p className="mt-2 text-sm text-blue-700">{previewVersions.length} total</p>
-                    <p className="mt-1 text-xs text-blue-500">Latest remains active; all versions are kept.</p>
+                    <p className="mt-1 text-xs text-blue-500">The newest staged asset remains active for review.</p>
                   </div>
 
                   <div className="mt-6">
