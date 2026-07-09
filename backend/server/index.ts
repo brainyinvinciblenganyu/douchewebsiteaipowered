@@ -64,6 +64,7 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRoutes);
+
 // Accept vendor product creation payloads.
 // Supports multipart/form-data uploads for 3D files.
 app.use(
@@ -75,6 +76,7 @@ app.use(
   ]),
   productRoutes,
 );
+
 app.use('/api/recommendations', recommendationRoutes);
 
 const port = Number(process.env.BACKEND_PORT || 3001);

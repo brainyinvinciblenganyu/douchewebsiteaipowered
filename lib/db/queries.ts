@@ -25,7 +25,8 @@ export type DbProduct = {
   asset_type: string | null;
   asset_size: number | null;
   asset_data: string | null;
-  asset_file: string | null;
+  // Stored in Postgres as `bytea`.
+  asset_file: Buffer | null;
   status: string;
   created_at: string;
 };
@@ -87,7 +88,7 @@ export async function createProduct(params: {
   asset_type?: string | null;
   asset_size?: number | null;
   asset_data?: string | null;
-  asset_file?: string | null;
+  asset_file?: Buffer | null;
   status?: string;
 }): Promise<DbProduct> {
   const pool = getPool();

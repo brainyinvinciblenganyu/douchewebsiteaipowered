@@ -13,6 +13,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const contentType = req.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      // Frontend may send multipart/form-data when staging a 3D upload.
+      // Backend handles binary uploads; for now reject here to avoid inserting empty rows.
+      return NextResponse.json({ error: 'Unsupported content-type for JSON product creation' }, { status: 415 });
+    }
+
     const payload = await req.json().catch(() => ({}));
     const product = await createProduct({
       name: payload.name?.toString().trim() || 'Untitled product',

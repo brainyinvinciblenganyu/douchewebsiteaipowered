@@ -208,27 +208,33 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
     if (!existing) return;
 
     try {
-      const response = await fetch('/api/products', {
+      if (!selectedFile) throw new Error('Please choose a 3D file before publishing.');
+
+      const form = new FormData();
+      form.append('name', name);
+      form.append('description', description);
+      form.append('category', category);
+
+      const tagArr = tags
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      for (const t of tagArr) form.append('tags', t);
+
+      form.append('price', String(pricing.price));
+      form.append('currency', pricing.currency);
+      form.append('vendor_user_id', user?.id ? String(user.id) : '');
+      form.append('asset_name', selectedFile.name);
+      form.append('asset_type', selectedFile.type || 'application/octet-stream');
+      form.append('asset_size', String(selectedFile.size));
+      form.append('status', 'published');
+
+      // Actual 3D bytes go in multipart.
+      form.append('asset_file', selectedFile);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001'}/api/products`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          description,
-          category,
-          tags: tags
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean),
-          price: pricing.price,
-          currency: pricing.currency,
-          vendor_user_id: user?.id ? String(user.id) : null,
-          asset_name: selectedFile?.name ?? null,
-          asset_type: selectedFile?.type ?? 'application/octet-stream',
-          asset_size: selectedFile?.size ?? null,
-          asset_data: selectedFile ? await selectedFile.text().catch(() => '') : null,
-          asset_file: selectedFile ? await selectedFile.text().catch(() => '') : null,
-          status: 'published',
-        }),
+        body: form,
       });
 
       if (!response.ok) {
@@ -675,7 +681,7 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                     <button
                       type="button"
                       onClick={handlePublish}
-                      disabled={!hasStaged3DFile || !canContinueStep2 || !canContinueStep1}
+            disabled={false}
                       className="flex-1 rounded-2xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Publish product
