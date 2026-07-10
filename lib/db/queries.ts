@@ -115,8 +115,11 @@ export async function createProduct(params: {
   return res.rows[0] as DbProduct;
 }
 
-export async function listProducts(options?: { vendorUserId?: string | null }): Promise<DbProduct[]> {
+export async function listProducts(options?: {
+  vendorUserId?: string | null;
+}): Promise<DbProduct[]> {
   const pool = getPool();
+
   const vendorUserId = options?.vendorUserId?.toString().trim() || null;
   const queryText = vendorUserId
     ? `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
@@ -153,3 +156,103 @@ export async function listProducts(options?: { vendorUserId?: string | null }): 
     }));
   }
 }
+
+export async function deleteProduct(
+  productId: string,
+  vendorUserId: string,
+): Promise<boolean> {
+  const pool = getPool();
+  try {
+    const res = await pool.query(
+      `DELETE FROM products
+       WHERE id = $1
+         AND vendor_user_id = $2
+       RETURNING id`,
+      [productId, vendorUserId],
+    );
+    return (res.rows?.length ?? 0) > 0;
+  } catch (error) {
+    console.warn('deleteProduct query failed, fallback to mock:', error);
+    return false;
+  }
+}
+
+export async function getProductByIdForVendor(
+  productId: string,
+  vendorUserId: string,
+): Promise<DbProduct | null> {
+  const pool = getPool();
+  try {
+    const res = await pool.query(
+      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+       FROM products
+       WHERE id = $1 AND vendor_user_id = $2
+       LIMIT 1`,
+      [productId, vendorUserId],
+    );
+    return (res.rows[0] as DbProduct | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateProduct(
+  productId: string,
+  vendorUserId: string,
+  patch: {
+    name?: string;
+    description?: string | null;
+    category?: string | null;
+    tags?: string[];
+    price?: number;
+    currency?: string;
+    status?: string;
+    asset_name?: string | null;
+    asset_type?: string | null;
+    asset_size?: number | null;
+    asset_data?: string | null;
+    asset_file?: Buffer | null;
+  },
+): Promise<DbProduct | null> {
+  const pool = getPool();
+
+  const fields: Array<{ key: string; value: unknown }> = [];
+  const pushIfDefined = (key: string, value: unknown) => {
+    if (typeof value === 'undefined') return;
+    fields.push({ key, value });
+  };
+
+  pushIfDefined('name', patch.name);
+  pushIfDefined('description', patch.description);
+  pushIfDefined('category', patch.category);
+  pushIfDefined('tags', patch.tags);
+  pushIfDefined('price', patch.price);
+  pushIfDefined('currency', patch.currency);
+  pushIfDefined('status', patch.status);
+  pushIfDefined('asset_name', patch.asset_name);
+  pushIfDefined('asset_type', patch.asset_type);
+  pushIfDefined('asset_size', patch.asset_size);
+  pushIfDefined('asset_data', patch.asset_data);
+  pushIfDefined('asset_file', patch.asset_file);
+
+  if (fields.length === 0) {
+    return getProductByIdForVendor(productId, vendorUserId);
+  }
+
+  const queryText = `
+    UPDATE products
+    SET
+      ${fields
+        .map((f, idx) => `${f.key} = $${idx + 3}`)
+        .join(', ')}
+    WHERE id = $1
+      AND vendor_user_id = $2
+    RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+  `;
+
+  const values = [productId, vendorUserId, ...fields.map((f) => f.value)];
+
+  const res = await pool.query(queryText, values);
+  return (res.rows[0] as DbProduct | undefined) ?? null;
+}
+

@@ -1,9 +1,18 @@
 import { Router, type Request, type Response } from 'express';
 import type { File as MulterFile } from 'multer';
-import { createProduct, listProducts } from '../../../lib/db/queries.js';
+
+import {
+  createProduct,
+  deleteProduct,
+  listProducts,
+  updateProduct,
+} from '../../../lib/db/queries.js';
+
 import { getSessionFromRequest } from '../../../lib/auth/session.js';
 
-function getFirstUploadedFile(req: Request): { buffer: Buffer; mimetype?: string } | null {
+function getFirstUploadedFile(
+  req: Request,
+): { buffer: Buffer; mimetype?: string } | null {
   const anyReq = req as Request & { files?: Record<string, MulterFile[]> };
   const files = anyReq.files;
   if (!files) return null;
@@ -29,25 +38,65 @@ function getFirstUploadedFile(req: Request): { buffer: Buffer; mimetype?: string
 
 const router = Router();
 
-function getStringValue(value: unknown): string | null {
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      if (typeof item === 'string' && item.trim()) return item.trim();
-    }
-    return null;
-  }
-
+function firstString(value: unknown): string | null {
   if (typeof value === 'string') {
     const trimmed = value.trim();
     return trimmed || null;
   }
 
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        if (trimmed) return trimmed;
+      }
+    }
+    return null;
+  }
+
   return null;
+}
+
+function parseTags(value: unknown): string[] | undefined {
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => String(v))
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  return undefined;
+}
+
+function parsePrice(value: unknown): number | undefined {
+  if (typeof value === 'undefined') return undefined;
+
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (typeof first === 'undefined') return undefined;
+    const n = Number(String(first));
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  const n = Number(String(value));
+  return Number.isFinite(n) ? n : undefined;
 }
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const vendorUserId = getStringValue(req.query.vendor_user_id) ?? getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0])?.userId ?? null;
+    const vendorUserId =
+      firstString(req.query.vendor_user_id) ??
+      getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0])
+        ?.userId ??
+      null;
+
     const products = await listProducts(vendorUserId ? { vendorUserId } : undefined);
     res.json({ products });
   } catch (error) {
@@ -58,45 +107,61 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    // With multer: req.body contains text fields; uploaded file is available on req.files.
     const payload = req.body ?? {};
-
     const uploaded = getFirstUploadedFile(req);
 
-    // Multer text fields arrive as strings (even for numeric-ish fields) from multipart.
-    const priceRaw = payload.price ?? 0;
-    const price = typeof priceRaw === 'number' ? priceRaw : Number(String(priceRaw));
-
-    const tagsRaw = payload.tags ?? [];
-    const tags = Array.isArray(tagsRaw)
-      ? tagsRaw.map((t) => String(t))
-      : typeof tagsRaw === 'string'
-        ? tagsRaw
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [];
-
-    const vendorUserId = getStringValue(payload.vendor_user_id)
-      ?? getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0])?.userId
-      ?? null;
+    const session = getSessionFromRequest(
+      req as Parameters<typeof getSessionFromRequest>[0],
+    );
+    const vendorUserId = session?.userId ?? null;
+    if (!vendorUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const asset_file = uploaded ? uploaded.buffer : null;
 
     const product = await createProduct({
-      name: payload.name?.toString().trim() || 'Untitled product',
-      description: payload.description ?? null,
-      category: payload.category ?? null,
-      tags,
-      price: Number.isFinite(price) ? price : 0,
-      currency: payload.currency ?? 'FCFA',
+      name: firstString(payload.name) ?? 'Untitled product',
+      description:
+        typeof payload.description === 'undefined'
+          ? null
+          : payload.description === null
+            ? null
+            : String(payload.description),
+      category:
+        typeof payload.category === 'undefined'
+          ? null
+          : payload.category === null
+            ? null
+            : String(payload.category),
+      tags: parseTags(payload.tags) ?? [],
+      price: parsePrice(payload.price) ?? 0,
+      currency: firstString(payload.currency) ?? 'FCFA',
       vendor_user_id: vendorUserId,
-      asset_name: payload.asset_name ?? (uploaded ? 'uploaded-asset' : null),
-      asset_type: payload.asset_type ?? uploaded?.mimetype ?? null,
-      asset_size: payload.asset_size ? Number(payload.asset_size) : uploaded ? uploaded.buffer.byteLength : null,
-      asset_data: payload.asset_data ?? null,
+      asset_name:
+        typeof payload.asset_name === 'undefined'
+          ? uploaded
+            ? 'uploaded-asset'
+            : null
+          : String(payload.asset_name),
+      asset_type:
+        typeof payload.asset_type === 'undefined'
+          ? uploaded?.mimetype ?? null
+          : String(payload.asset_type),
+      asset_size:
+        typeof payload.asset_size === 'undefined'
+          ? uploaded
+            ? uploaded.buffer.byteLength
+            : null
+          : Number(String(payload.asset_size)),
+      asset_data:
+        typeof payload.asset_data === 'undefined'
+          ? null
+          : payload.asset_data === null
+            ? null
+            : String(payload.asset_data),
       asset_file,
-      status: payload.status ?? 'published',
+      status: firstString(payload.status) ?? 'published',
     });
 
     res.status(201).json({ product });
@@ -106,4 +171,117 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const session = getSessionFromRequest(
+      req as Parameters<typeof getSessionFromRequest>[0],
+    );
+    const vendorUserId = session?.userId ?? null;
+
+    if (!vendorUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const productId = req.params.id;
+    const ok = await deleteProduct(productId, String(vendorUserId));
+
+    if (!ok) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    return res.status(200).json({ status: 'success' });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    return res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const session = getSessionFromRequest(
+      req as Parameters<typeof getSessionFromRequest>[0],
+    );
+    const vendorUserId = session?.userId ?? null;
+
+    if (!vendorUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const payload = req.body ?? {};
+    const uploaded = getFirstUploadedFile(req);
+
+    const asset_file = uploaded ? uploaded.buffer : undefined;
+
+    const updated = await updateProduct(req.params.id, String(vendorUserId), {
+name:
+        typeof payload.name === 'undefined'
+          ? undefined
+          : (Array.isArray(payload.name)
+              ? firstString(payload.name[0]) ?? undefined
+              : firstString(payload.name) ?? undefined),
+      description:
+        typeof payload.description === 'undefined'
+          ? undefined
+          : payload.description === null
+            ? null
+            : String(payload.description),
+      category:
+        typeof payload.category === 'undefined'
+          ? undefined
+          : payload.category === null
+            ? null
+            : String(payload.category),
+      tags:
+        typeof payload.tags === 'undefined'
+          ? undefined
+          : parseTags(payload.tags) ?? undefined,
+      price:
+        typeof payload.price === 'undefined' ? undefined : parsePrice(payload.price),
+      currency:
+        typeof payload.currency === 'undefined'
+          ? undefined
+          : firstString(payload.currency) ?? undefined,
+      status:
+        typeof payload.status === 'undefined'
+          ? undefined
+          : firstString(payload.status) ?? undefined,
+      asset_name:
+        uploaded
+          ? typeof payload.asset_name === 'undefined'
+            ? 'uploaded-asset'
+            : String(payload.asset_name)
+          : undefined,
+      asset_type:
+        uploaded
+          ? typeof payload.asset_type === 'undefined'
+            ? uploaded.mimetype ?? null
+            : String(payload.asset_type)
+          : undefined,
+      asset_size:
+        uploaded
+          ? typeof payload.asset_size === 'undefined'
+            ? uploaded.buffer.byteLength
+            : Number(String(payload.asset_size))
+          : undefined,
+      asset_data:
+        typeof payload.asset_data === 'undefined'
+          ? undefined
+          : payload.asset_data === null
+            ? null
+            : String(payload.asset_data),
+      asset_file,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    return res.status(200).json({ product: updated });
+  } catch (error) {
+    console.error('Update product error:', error);
+    return res.status(500).json({ error: 'Failed to update product' });
+  }
+});
+
 export default router;
+
