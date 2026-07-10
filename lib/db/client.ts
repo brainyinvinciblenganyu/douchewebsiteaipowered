@@ -137,6 +137,6 @@ export function getPool(): DbPoolLike {
     max: 5,
   });
 
-  pool = new FallbackPool(primaryPool as DbPoolLike, new InMemoryPool());
+  pool = primaryPool as DbPoolLike;
   return pool;
 }

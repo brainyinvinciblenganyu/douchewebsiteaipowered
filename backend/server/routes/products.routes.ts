@@ -1,8 +1,10 @@
 import { Router, type Request, type Response } from 'express';
+import type { File as MulterFile } from 'multer';
 import { createProduct, listProducts } from '../../../lib/db/queries.js';
+import { getSessionFromRequest } from '../../../lib/auth/session.js';
 
 function getFirstUploadedFile(req: Request): { buffer: Buffer; mimetype?: string } | null {
-  const anyReq = req as Request & { files?: Record<string, Express.Multer.File[]> };
+  const anyReq = req as Request & { files?: Record<string, MulterFile[]> };
   const files = anyReq.files;
   if (!files) return null;
 
@@ -27,9 +29,26 @@ function getFirstUploadedFile(req: Request): { buffer: Buffer; mimetype?: string
 
 const router = Router();
 
-router.get('/', async (_req: Request, res: Response) => {
+function getStringValue(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === 'string' && item.trim()) return item.trim();
+    }
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  return null;
+}
+
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const products = await listProducts();
+    const vendorUserId = getStringValue(req.query.vendor_user_id) ?? getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0])?.userId ?? null;
+    const products = await listProducts(vendorUserId ? { vendorUserId } : undefined);
     res.json({ products });
   } catch (error) {
     console.error('Failed to list products', error);
@@ -58,6 +77,10 @@ router.post('/', async (req: Request, res: Response) => {
             .filter(Boolean)
         : [];
 
+    const vendorUserId = getStringValue(payload.vendor_user_id)
+      ?? getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0])?.userId
+      ?? null;
+
     const asset_file = uploaded ? uploaded.buffer : null;
 
     const product = await createProduct({
@@ -67,7 +90,7 @@ router.post('/', async (req: Request, res: Response) => {
       tags,
       price: Number.isFinite(price) ? price : 0,
       currency: payload.currency ?? 'FCFA',
-      vendor_user_id: payload.vendor_user_id ?? null,
+      vendor_user_id: vendorUserId,
       asset_name: payload.asset_name ?? (uploaded ? 'uploaded-asset' : null),
       asset_type: payload.asset_type ?? uploaded?.mimetype ?? null,
       asset_size: payload.asset_size ? Number(payload.asset_size) : uploaded ? uploaded.buffer.byteLength : null,

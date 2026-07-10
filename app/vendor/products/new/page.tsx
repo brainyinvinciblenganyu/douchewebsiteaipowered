@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import RequireAuth from '../../../../components/RequireAuth';
 import { useBackendAuth } from '../../../../components/BackendAuthProvider';
 import { categories } from '../../../../lib/mockData';
 import { addVendorDraft, getVendorDrafts, type VendorDraft } from '../../../../lib/vendorDrafts';
 import ModelViewer from '../../../../components/ModelViewer';
+import { BACKEND_API_BASE_URL } from '../../../../lib/apiConfig';
 import { ArrowLeft, CheckCircle2, ChevronRight, Plus, RotateCcw, UploadCloud, Loader2 } from 'lucide-react';
 
 type DraftPricing = {
@@ -53,6 +55,7 @@ function isAccepted3DFile(file: File | null) {
 }
 
 export default function NewVendorProductPage() {
+  const router = useRouter();
   const { user } = useBackendAuth();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
@@ -69,6 +72,7 @@ export default function NewVendorProductPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [uploadError, setUploadError] = useState<string>('');
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const [previewVersions, setPreviewVersions] = useState<PreviewVersion[]>([]);
   const [activeVersionId, setActiveVersionId] = useState<string>('');
@@ -209,6 +213,16 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
 
     try {
       if (!selectedFile) throw new Error('Please choose a 3D file before publishing.');
+      const MAX_BYTES = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_BYTES) || 100 * 1024 * 1024; // 100MB
+      if (selectedFile.size > MAX_BYTES) {
+        setStatus(`File too large. Max ${(MAX_BYTES / (1024 * 1024)).toFixed(0)} MB.`);
+        return;
+      }
+
+      setIsPublishing(true);
+      setStatus('Publishing product...');
+
+      const vendorUserId = user?.id ? String(user.id) : '';
 
       const form = new FormData();
       form.append('name', name);
@@ -223,7 +237,7 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
 
       form.append('price', String(pricing.price));
       form.append('currency', pricing.currency);
-      form.append('vendor_user_id', user?.id ? String(user.id) : '');
+      form.append('vendor_user_id', vendorUserId);
       form.append('asset_name', selectedFile.name);
       form.append('asset_type', selectedFile.type || 'application/octet-stream');
       form.append('asset_size', String(selectedFile.size));
@@ -232,9 +246,10 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
       // Actual 3D bytes go in multipart.
       form.append('asset_file', selectedFile);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001'}/api/products`, {
+      const response = await fetch(`${BACKEND_API_BASE_URL}/api/products`, {
         method: 'POST',
         body: form,
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -249,11 +264,14 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
       };
 
       addVendorDraft(published, { replace: true });
-      setStatus('Product saved to the database.');
-      setStep(4);
+      window.localStorage.removeItem(STORAGE_KEYS.currentDraftId);
+      setStatus('Product published to the live catalog.');
+      router.replace(`/vendor/products?created=1&refresh=${Date.now()}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to create product';
       setStatus(message);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -681,10 +699,11 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
                     <button
                       type="button"
                       onClick={handlePublish}
-            disabled={false}
-                      className="flex-1 rounded-2xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                      disabled={isPublishing}
+                      className="flex-1 rounded-2xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      Publish product
+                      {isPublishing ? <Loader2 size={16} className="animate-spin" /> : null}
+                      {isPublishing ? 'Publishing...' : 'Publish product'}
                     </button>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { BackendAuthProvider as AuthProvider } from "../components/BackendAuthProvider";
 import "./globals.css";
 import Navbar from '../components/Navbar';
@@ -8,7 +9,7 @@ import TabIndicator from '../components/TabIndicator';
 const fontVariables = {
   '--font-sans': 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   '--font-mono': '"SFMono-Regular", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-};
+} as CSSProperties;
 
 export const metadata: Metadata = {
   title: "Douche • AI-Powered 3D E-Commerce",

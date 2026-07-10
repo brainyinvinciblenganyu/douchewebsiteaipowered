@@ -115,33 +115,41 @@ export async function createProduct(params: {
   return res.rows[0] as DbProduct;
 }
 
-export async function listProducts(): Promise<DbProduct[]> {
+export async function listProducts(options?: { vendorUserId?: string | null }): Promise<DbProduct[]> {
   const pool = getPool();
-  const res = await pool.query(
-    `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
-     FROM products ORDER BY created_at DESC`,
-  );
+  const vendorUserId = options?.vendorUserId?.toString().trim() || null;
+  const queryText = vendorUserId
+    ? `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+       FROM products WHERE vendor_user_id = $1 ORDER BY created_at DESC`
+    : `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+       FROM products ORDER BY created_at DESC`;
 
-  const rows = (res.rows ?? []) as DbProduct[];
-  if (rows.length > 0) {
-    return rows;
+  try {
+    const res = await pool.query(queryText, vendorUserId ? [vendorUserId] : []);
+    return (res.rows ?? []) as DbProduct[];
+  } catch (error) {
+    console.warn('List products query failed, using mock fallback:', error);
+
+    const fallbackProducts = vendorUserId
+      ? mockProducts.filter((product) => String(product.vendorId) === vendorUserId)
+      : mockProducts;
+
+    return fallbackProducts.map((product) => ({
+      id: String(product.id),
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      tags: product.tags,
+      price: product.price,
+      currency: product.currency,
+      vendor_user_id: String(product.vendorId),
+      asset_name: product.model,
+      asset_type: 'model/gltf-binary',
+      asset_size: 0,
+      asset_data: null,
+      asset_file: null,
+      status: 'published',
+      created_at: product.createdAt,
+    }));
   }
-
-  return mockProducts.map((product) => ({
-    id: String(product.id),
-    name: product.name,
-    description: product.description,
-    category: product.category,
-    tags: product.tags,
-    price: product.price,
-    currency: product.currency,
-    vendor_user_id: String(product.vendorId),
-    asset_name: product.model,
-    asset_type: 'model/gltf-binary',
-    asset_size: 0,
-    asset_data: null,
-    asset_file: null,
-    status: 'published',
-    created_at: product.createdAt,
-  }));
 }

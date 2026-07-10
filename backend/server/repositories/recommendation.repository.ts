@@ -33,7 +33,7 @@ export async function getCachedRecommendations(userId: string | null, profileHas
     LIMIT 1
   `;
   const res = await pool.query(queryText, [userId, profileHash]);
-  const row = res.rows[0] as RecommendationCacheRow | undefined;
+  const row = res.rows[0] as unknown as RecommendationCacheRow | undefined;
   if (!row) return null;
 
   return {

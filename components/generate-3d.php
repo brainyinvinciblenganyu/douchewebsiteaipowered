@@ -76,6 +76,8 @@ if ($httpCode === 200) {
             "price" => "FCFA 5,000",
             "image" => "https://images.unsplash.com/photo-1585333127302-d278996629e9?w=200"
         ]
+    ];
+
     // 4. Recommendation Logic
     // This simulates querying your MySQL database for products that match the AI generation
     $mockProductDb = [

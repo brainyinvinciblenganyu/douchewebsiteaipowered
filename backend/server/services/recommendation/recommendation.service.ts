@@ -37,7 +37,7 @@ export async function getRecommendations(userId: string | null): Promise<Recomme
       const cached = await getCachedRecommendations(userId, profileHash);
       if (cached?.recommendations?.length) {
         return {
-          recommendations: cached.recommendations as RecommendationItem[],
+          recommendations: cached.recommendations as unknown as RecommendationItem[],
           isAiPowered: false,
         };
       }

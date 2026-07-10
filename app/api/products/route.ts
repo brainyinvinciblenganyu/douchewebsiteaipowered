@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
-import { createProduct, listProducts } from '../../../lib/db/queries';
+import { BACKEND_API_BASE_URL } from '../../../lib/apiConfig';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const products = await listProducts();
-    return NextResponse.json({ products });
+    const url = new URL(req.url);
+    const searchParams = url.searchParams.toString();
+    const backendUrl = `${BACKEND_API_BASE_URL}/api/products${searchParams ? `?${searchParams}` : ''}`;
+
+    const response = await fetch(backendUrl, {
+      method: 'GET',
+      cache: 'no-store',
+    });
+
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('Failed to list products', error);
+    console.error('Failed to proxy list products', error);
     return NextResponse.json({ error: 'Failed to list products' }, { status: 500 });
   }
 }
@@ -14,32 +23,19 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const contentType = req.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      // Frontend may send multipart/form-data when staging a 3D upload.
-      // Backend handles binary uploads; for now reject here to avoid inserting empty rows.
-      return NextResponse.json({ error: 'Unsupported content-type for JSON product creation' }, { status: 415 });
-    }
+    const isMultipart = contentType.includes('multipart/form-data');
+    const backendUrl = `${BACKEND_API_BASE_URL}/api/products`;
 
-    const payload = await req.json().catch(() => ({}));
-    const product = await createProduct({
-      name: payload.name?.toString().trim() || 'Untitled product',
-      description: payload.description ?? null,
-      category: payload.category ?? null,
-      tags: Array.isArray(payload.tags) ? payload.tags : [],
-      price: Number(payload.price ?? 0),
-      currency: payload.currency ?? 'FCFA',
-      vendor_user_id: payload.vendor_user_id ?? null,
-      asset_name: payload.asset_name ?? null,
-      asset_type: payload.asset_type ?? null,
-      asset_size: payload.asset_size ?? null,
-      asset_data: payload.asset_data ?? null,
-      asset_file: payload.asset_file ?? null,
-      status: payload.status ?? 'published',
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: isMultipart ? undefined : { 'Content-Type': 'application/json' },
+      body: isMultipart ? await req.formData() : await req.text(),
     });
 
-    return NextResponse.json({ product, products: [product] }, { status: 201 });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('Failed to create product', error);
+    console.error('Failed to proxy create product', error);
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
   }
 }
