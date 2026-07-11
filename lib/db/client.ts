@@ -12,6 +12,8 @@ class InMemoryPool implements DbPoolLike {
   private users: Array<Record<string, unknown>> = [];
   private products: Array<Record<string, unknown>> = [];
   private recommendationCache: Array<Record<string, unknown>> = [];
+  private orders: Array<Record<string, unknown>> = [];
+  private orderItems: Array<Record<string, unknown>> = [];
 
   async query(text: string, params: unknown[] = []) {
     const normalized = text.trim().toLowerCase();
@@ -92,6 +94,70 @@ class InMemoryPool implements DbPoolLike {
     if (normalized.includes('from recommendation_cache')) {
       const rows = this.recommendationCache.filter((row) => new Date(String(row.expires_at)) > new Date());
       return { rows: rows.slice().reverse() };
+    }
+
+    if (normalized.includes('insert into orders')) {
+      const [userId, totalAmount, currency, status] = params as [string | null, number, string, string];
+      const order = {
+        id: `order-${this.orders.length + 1}`,
+        user_id: userId,
+        total_amount: totalAmount,
+        currency,
+        status: status ?? 'paid',
+        created_at: new Date().toISOString(),
+      };
+      this.orders.push(order);
+      return { rows: [order] };
+    }
+
+    if (normalized.includes('insert into order_items')) {
+      const [orderId, productId, productName, quantity, unitPrice] = params as [string, string | null, string, number, number];
+      const product = this.products.find((p) => String(p.id) === String(productId));
+      const item = {
+        id: `oi-${this.orderItems.length + 1}`,
+        order_id: orderId,
+        product_id: productId ?? null,
+        product_name: productName,
+        quantity,
+        unit_price: unitPrice,
+        vendor_user_id: (product?.vendor_user_id ?? null) as string | null,
+        created_at: new Date().toISOString(),
+      };
+      this.orderItems.push(item);
+      return { rows: [item] };
+    }
+
+    if (normalized.includes('from orders')) {
+      const isVendor = normalized.includes('p.vendor_user_id');
+      const filterValue = params[0];
+      const matched = this.orders.filter((o) => {
+        const items = this.orderItems.filter((oi) => oi.order_id === o.id);
+        if (isVendor) {
+          return items.some((oi) => String(oi.vendor_user_id) === String(filterValue));
+        }
+        return String(o.user_id) === String(filterValue);
+      });
+
+      const rows: Array<Record<string, unknown>> = [];
+      for (const o of matched) {
+        const items = this.orderItems.filter((oi) => oi.order_id === o.id);
+        for (const it of items) {
+          rows.push({
+            order_id: o.id,
+            customer_id: o.user_id,
+            total_amount: o.total_amount,
+            currency: o.currency,
+            status: o.status,
+            created_at: o.created_at,
+            product_id: it.product_id,
+            product_name: it.product_name,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            vendor_user_id: it.vendor_user_id,
+          });
+        }
+      }
+      return { rows };
     }
 
     return { rows: [] };

@@ -7,6 +7,7 @@ import cors from 'cors';
 import authRoutes from './auth/index.js';
 import recommendationRoutes from './routes/recommendation.routes.js';
 import productRoutes from './routes/products.routes.js';
+import orderRoutes from './routes/orders.routes.js';
 
 import { productAssetUpload } from './middleware/uploadProductAsset.js';
 import { initDatabase } from './db/init.js';
@@ -82,6 +83,7 @@ app.use(
 );
 
 app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Error handler for Multer (file upload) errors and centralized errors
 app.use((err: any, _req: Request, res: Response, next: (err?: any) => void) => {

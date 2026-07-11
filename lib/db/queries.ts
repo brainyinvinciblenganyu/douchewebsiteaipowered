@@ -256,3 +256,147 @@ export async function updateProduct(
   return (res.rows[0] as DbProduct | undefined) ?? null;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getProductById(id: string): Promise<DbProduct | null> {
+  if (!UUID_RE.test(id)) return null;
+  const pool = getPool();
+  try {
+    const res = await pool.query(
+      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+       FROM products WHERE id = $1 LIMIT 1`,
+      [id],
+    );
+    return (res.rows[0] as DbProduct | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export type DbOrderItem = {
+  productId: string | null;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  vendorUserId: string | null;
+};
+
+export type DbOrder = {
+  id: string;
+  userId: string | null;
+  totalAmount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  items: DbOrderItem[];
+};
+
+function groupOrderRows(rows: Array<Record<string, unknown>>): DbOrder[] {
+  const map = new Map<string, DbOrder>();
+
+  for (const r of rows) {
+    const id = String(r.order_id);
+    let order = map.get(id);
+    if (!order) {
+      order = {
+        id,
+        userId: (r.customer_id ?? null) as string | null,
+        totalAmount: Number(r.total_amount ?? 0),
+        currency: String(r.currency ?? 'FCFA'),
+        status: String(r.status ?? 'paid'),
+        createdAt: String(r.created_at),
+        items: [],
+      };
+      map.set(id, order);
+    }
+
+    order.items.push({
+      productId: r.product_id != null ? String(r.product_id) : null,
+      productName: String(r.product_name ?? 'Unknown product'),
+      quantity: Number(r.quantity ?? 0),
+      unitPrice: Number(r.unit_price ?? 0),
+      vendorUserId: r.vendor_user_id != null ? String(r.vendor_user_id) : null,
+    });
+  }
+
+  return Array.from(map.values());
+}
+
+export async function createOrder(params: {
+  userId: string | null;
+  totalAmount: number;
+  currency: string;
+  status?: string;
+  items: Array<{ productId: string; quantity: number; unitPrice: number }>;
+}): Promise<DbOrder> {
+  const pool = getPool();
+  const status = params.status ?? 'paid';
+
+  const res = await pool.query(
+    `INSERT INTO orders (user_id, total_amount, currency, status)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, user_id, total_amount, currency, status, created_at`,
+    [params.userId, params.totalAmount, params.currency, status],
+  );
+
+  const order = res.rows[0];
+
+  for (const it of params.items) {
+    const pid = String(it.productId);
+    const product = UUID_RE.test(pid) ? await getProductById(pid) : null;
+
+    await pool.query(
+      `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        order.id,
+        product ? pid : null,
+        product?.name ?? 'Unknown product',
+        Number(it.quantity),
+        Number(it.unitPrice),
+        new Date().toISOString(),
+      ],
+    );
+  }
+
+  return {
+    id: String(order.id),
+    userId: (order.user_id ?? null) as string | null,
+    totalAmount: Number(order.total_amount),
+    currency: String(order.currency),
+    status: String(order.status),
+    createdAt: String(order.created_at),
+    items: [],
+  };
+}
+
+export async function getOrdersForVendor(vendorUserId: string): Promise<DbOrder[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT o.id AS order_id, o.user_id AS customer_id, o.total_amount, o.currency, o.status, o.created_at,
+            oi.product_id, oi.product_name, oi.quantity, oi.unit_price,
+            p.vendor_user_id
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     JOIN products p ON p.id = oi.product_id
+     WHERE p.vendor_user_id = $1
+     ORDER BY o.created_at DESC`,
+    [vendorUserId],
+  );
+  return groupOrderRows(res.rows as Array<Record<string, unknown>>);
+}
+
+export async function getOrdersForCustomer(userId: string): Promise<DbOrder[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT o.id AS order_id, o.user_id AS customer_id, o.total_amount, o.currency, o.status, o.created_at,
+            oi.product_id, oi.product_name, oi.quantity, oi.unit_price
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     WHERE o.user_id = $1
+     ORDER BY o.created_at DESC`,
+    [userId],
+  );
+  return groupOrderRows(res.rows as Array<Record<string, unknown>>);
+}
+

@@ -1,23 +1,20 @@
 import { NextResponse } from 'next/server';
 import { BACKEND_API_BASE_URL } from '../../../lib/apiConfig';
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   try {
-    const body = await req.json();
-
     const backendRes = await fetch(`${BACKEND_API_BASE_URL}/api/orders`, {
-      method: 'POST',
+      method: 'GET',
+      cache: 'no-store',
       headers: {
-        'Content-Type': 'application/json',
         cookie: req.headers.get('cookie') || '',
       },
-      body: JSON.stringify(body),
     });
 
     const data = await backendRes.json().catch(() => ({}));
     return NextResponse.json(data, { status: backendRes.status });
-  } catch (e) {
-    console.error('checkout error', e);
-    return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
+  } catch (error) {
+    console.error('Failed to load orders', error);
+    return NextResponse.json({ error: 'Failed to load orders' }, { status: 500 });
   }
 }

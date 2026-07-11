@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import RequireAuth from '../../../components/RequireAuth';
+import VendorNav from '../../../components/VendorNav';
 import { aiStatus, purchaseRequests, inventory } from '../../../lib/mockData';
 import { ArrowRight, Layers, Sparkles, Truck, Zap } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export default function VendorDashboardPage() {
     <RequireAuth role="vendor">
       <div className="min-h-screen bg-transparent">
         <main className="max-w-7xl mx-auto px-6 py-16">
+        <VendorNav />
         <section className="rounded-[32px] border border-blue-200/50 bg-blue-600 p-10 shadow-xl shadow-slate-900/5 backdrop-blur-2xl">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>

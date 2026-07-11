@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import VendorProductsClient from './VendorProductsClient';
+import VendorNav from '../../../components/VendorNav';
 
 export default function VendorProductsPage() {
   return (
@@ -14,6 +15,7 @@ export default function VendorProductsPage() {
         </div>
       }
     >
+      <VendorNav />
       <VendorProductsClient />
     </Suspense>
   );
