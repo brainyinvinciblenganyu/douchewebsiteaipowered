@@ -1,4 +1,4 @@
-~import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { BACKEND_API_BASE_URL } from '../../../lib/apiConfig';
 
 export async function GET(req: Request) {
@@ -28,9 +28,13 @@ export async function POST(req: Request) {
 
     const response = await fetch(backendUrl, {
       method: 'POST',
-      headers: isMultipart ? undefined : { 'Content-Type': 'application/json' },
-      body: isMultipart ? (await req.formData()) : await req.text(),
+      // credentials doesn't forward cookies for server-side fetch; we explicitly forward below.
       credentials: 'include',
+      headers: {
+        ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
+        cookie: req.headers.get('cookie') || req.headers.get('Cookie') || '',
+      },
+      body: isMultipart ? (await req.formData()) : await req.text(),
     });
 
     const data = await response.json();

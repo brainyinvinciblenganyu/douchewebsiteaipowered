@@ -110,11 +110,23 @@ router.post('/', async (req: Request, res: Response) => {
     const payload = req.body ?? {};
     const uploaded = getFirstUploadedFile(req);
 
+    // DEBUG: helps determine why session cookie is missing/invalid
+    const cookieHeader = (() => {
+      const v = req.headers['cookie'];
+      if (Array.isArray(v)) return v.join('; ');
+      return (v ?? '').toString();
+    })();
     const session = getSessionFromRequest(
       req as Parameters<typeof getSessionFromRequest>[0],
     );
     const vendorUserId = session?.userId ?? null;
+
     if (!vendorUserId) {
+      console.warn('DEBUG /api/products POST unauthorized');
+      console.warn('DEBUG AUTH_COOKIE_NAME:', process.env.AUTH_COOKIE_NAME || 'session');
+      console.warn('DEBUG cookie header present:', Boolean(cookieHeader));
+      console.warn('DEBUG cookie header (truncated):', cookieHeader.slice(0, 200));
+      console.warn('DEBUG session:', session);
       return res.status(401).json({ error: 'Unauthorized' });
     }
 

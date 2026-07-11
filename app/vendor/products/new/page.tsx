@@ -68,7 +68,14 @@ export default function NewVendorProductPage() {
 
   const [pricing, setPricing] = useState<DraftPricing>({ currency: 'FCFA', price: 15000 });
 
+  // Prefill when coming from the edit page.
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const copyFromId = searchParams?.get('copy') ?? '';
+  const isEditing = Boolean(copyFromId);
+
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [uploadError, setUploadError] = useState<string>('');
@@ -85,7 +92,7 @@ export default function NewVendorProductPage() {
     try {
       const existingId = window.localStorage.getItem(STORAGE_KEYS.currentDraftId);
       if (existingId) {
-const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId);
+        const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId);
         if (existing) {
           setDraftId(existing.id);
           setName(existing.metadata.name);
@@ -122,6 +129,79 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
     };
     addVendorDraft(base);
   }, []);
+
+  // Prefill from an existing live product when user comes from the edit page.
+  useEffect(() => {
+    if (!copyFromId) return;
+    const vendorId = user?.id;
+    if (!vendorId) return;
+
+    const userId = vendorId;
+    let mounted = true;
+
+
+    async function prefill() {
+      try {
+        const res = await fetch(`/api/products?vendor_user_id=${encodeURIComponent(String(userId))}`, {
+          cache: 'no-store',
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const rows: any[] = Array.isArray(data.products) ? data.products : [];
+        const found = rows.find((p) => String(p.id) === String(copyFromId));
+        if (!found) return;
+
+        if (!mounted) return;
+
+        // Update wizard fields from live product.
+        setName(String(found.name ?? ''));
+        setCategory(found.category ? String(found.category) : 'Furniture');
+        setDescription(found.description ? String(found.description) : '');
+        const tagsArr: string[] = Array.isArray(found.tags) ? found.tags.map(String) : [];
+        setTags(tagsArr.join(', '));
+
+        setPricing({
+          currency: found.currency ? String(found.currency) : 'FCFA',
+          price: Number(found.price ?? 0),
+        });
+
+        // Stage metadata only (no file bytes). User can upload a new 3D file if desired.
+        if (found.asset_name) {
+          // Add a placeholder preview entry so the wizard shows the current asset name.
+          const versionId = uid();
+          setPreviewVersions([
+            {
+              versionId,
+              modelUrl: `/models/${String(found.asset_name)}`,
+              generatedAt: new Date().toISOString(),
+              fileName: String(found.asset_name),
+              sourceType: '3d-upload',
+            },
+          ]);
+          setActiveVersionId(versionId);
+        } else {
+          // If there's no current asset, ensure we start with an empty staged state.
+          setPreviewVersions([]);
+          setActiveVersionId('');
+        }
+
+
+        setStep(1);
+      } catch {
+        // ignore
+      }
+    }
+
+    void prefill();
+
+    return () => {
+      mounted = false;
+    };
+  }, [copyFromId, user?.id]);
+
+
 
 
   // Keep storage synced as user edits.
@@ -212,17 +292,26 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
     if (!existing) return;
 
     try {
-      if (!selectedFile) throw new Error('Please choose a 3D file before publishing.');
       const MAX_BYTES = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_BYTES) || 100 * 1024 * 1024; // 100MB
-      if (selectedFile.size > MAX_BYTES) {
+      if (selectedFile && selectedFile.size > MAX_BYTES) {
         setStatus(`File too large. Max ${(MAX_BYTES / (1024 * 1024)).toFixed(0)} MB.`);
         return;
       }
 
+      // In edit mode, allow publishing without re-uploading a 3D file.
+      if (!isEditing && !selectedFile) {
+        throw new Error('Please choose a 3D file before publishing.');
+      }
+
       setIsPublishing(true);
-      setStatus('Publishing product...');
+      setStatus(isEditing ? 'Publishing updated version...' : 'Publishing product...');
 
       const vendorUserId = user?.id ? String(user.id) : '';
+
+      // If editing and no new file was selected, reuse the currently staged asset filename.
+      const stagedAssetName = selectedFile?.name ?? activePreview?.fileName ?? '';
+      const stagedAssetType = selectedFile?.type ?? 'application/octet-stream';
+      const stagedAssetSize = selectedFile?.size != null ? String(selectedFile.size) : '';
 
       const form = new FormData();
       form.append('name', name);
@@ -238,23 +327,36 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
       form.append('price', String(pricing.price));
       form.append('currency', pricing.currency);
       form.append('vendor_user_id', vendorUserId);
-      form.append('asset_name', selectedFile.name);
-      form.append('asset_type', selectedFile.type || 'application/octet-stream');
-      form.append('asset_size', String(selectedFile.size));
+
+      if (!stagedAssetName) {
+        throw new Error('No 3D asset available to publish. Upload a 3D file first.');
+      }
+
+      form.append('asset_name', stagedAssetName);
+      form.append('asset_type', stagedAssetType);
+      if (stagedAssetSize) form.append('asset_size', stagedAssetSize);
       form.append('status', 'published');
 
-      // Actual 3D bytes go in multipart.
-      form.append('asset_file', selectedFile);
+      // Only send actual bytes if a new file was selected.
+      if (selectedFile) {
+        form.append('asset_file', selectedFile);
+        form.append('asset_size', String(selectedFile.size));
+      }
 
-      const response = await fetch(`${BACKEND_API_BASE_URL}/api/products`, {
-        method: 'POST',
-        body: form,
-        credentials: 'include',
-      });
+      const response = await fetch(
+        isEditing
+          ? `${BACKEND_API_BASE_URL}/api/products/${encodeURIComponent(copyFromId)}`
+          : `${BACKEND_API_BASE_URL}/api/products`,
+        {
+          method: isEditing ? 'PUT' : 'POST',
+          body: form,
+          credentials: 'include',
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create product');
+        throw new Error(errorData.error || (isEditing ? 'Failed to update product' : 'Failed to create product'));
       }
 
       const published: VendorDraft = {
@@ -265,15 +367,16 @@ const existing = getVendorDrafts().find((d: VendorDraft) => d.id === existingId)
 
       addVendorDraft(published, { replace: true });
       window.localStorage.removeItem(STORAGE_KEYS.currentDraftId);
-      setStatus('Product published to the live catalog.');
+      setStatus(isEditing ? 'Product updated in the live catalog.' : 'Product published to the live catalog.');
       router.replace(`/vendor/products?created=1&refresh=${Date.now()}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to create product';
+      const message = error instanceof Error ? error.message : 'Unable to publish product';
       setStatus(message);
     } finally {
       setIsPublishing(false);
     }
   };
+
 
   const activePreviewUrl = activePreview?.modelUrl ?? '';
 

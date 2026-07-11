@@ -120,10 +120,11 @@ export default function ProductEditClient() {
   async function handleEdit() {
     if (!product) return;
 
-    // For now, redirect vendor to the create/upload flow.
-    // This can be extended to pre-fill the draft from the product fields.
+    // Prefill the create/edit wizard with the current product.
+    // We pass the product id, and ProductNewPage will load it and prefill local draft state.
     router.push(`/vendor/products/new?copy=${encodeURIComponent(product.id)}`);
   }
+
 
   return (
     <RequireAuth role="vendor">
