@@ -76,7 +76,7 @@ export default function LoginPage() {
 
     if (result.success) {
       setMessage('Login successful. Redirecting...');
-      router.replace(result.user?.role === 'vendor' ? '/vendor/dashboard' : '/recommendations');
+      router.replace(result.user?.role === 'vendor' ? '/vendor/dashboard' : '/products');
     } else {
       setError(result.message || 'Login failed.');
     }

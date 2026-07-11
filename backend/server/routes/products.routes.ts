@@ -105,17 +105,36 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    // Since we don't have a dedicated get-by-id query yet,
+    // we list products and filter by id.
+    // This keeps everything real-time with the DB.
+    const all = await listProducts(undefined);
+    const product = all.find((p) => String(p.id) === String(req.params.id));
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    return res.status(200).json({ product });
+  } catch (error) {
+    console.error('Failed to get product', error);
+    return res.status(500).json({ error: 'Failed to get product' });
+  }
+});
+
 router.post('/', async (req: Request, res: Response) => {
   try {
     const payload = req.body ?? {};
     const uploaded = getFirstUploadedFile(req);
 
-    // DEBUG: helps determine why session cookie is missing/invalid
     const cookieHeader = (() => {
       const v = req.headers['cookie'];
       if (Array.isArray(v)) return v.join('; ');
       return (v ?? '').toString();
     })();
+
     const session = getSessionFromRequest(
       req as Parameters<typeof getSessionFromRequest>[0],
     );
@@ -165,7 +184,7 @@ router.post('/', async (req: Request, res: Response) => {
           ? uploaded
             ? uploaded.buffer.byteLength
             : null
-          : Number(String(payload.asset_size)),
+          : Number(String(Array.isArray(payload.asset_size) ? payload.asset_size[0] : payload.asset_size)),
       asset_data:
         typeof payload.asset_data === 'undefined'
           ? null
@@ -188,20 +207,19 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const session = getSessionFromRequest(
       req as Parameters<typeof getSessionFromRequest>[0],
     );
+
     const vendorUserId = session?.userId ?? null;
 
     if (!vendorUserId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const productId = req.params.id;
-    const ok = await deleteProduct(productId, String(vendorUserId));
-
-    if (!ok) {
+    const deleted = await deleteProduct(req.params.id, String(vendorUserId));
+    if (!deleted) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    return res.status(200).json({ status: 'success' });
+    return res.status(200).json({ status: 'deleted' });
   } catch (error) {
     console.error('Delete product error:', error);
     return res.status(500).json({ error: 'Failed to delete product' });
@@ -213,6 +231,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const session = getSessionFromRequest(
       req as Parameters<typeof getSessionFromRequest>[0],
     );
+
     const vendorUserId = session?.userId ?? null;
 
     if (!vendorUserId) {
@@ -273,7 +292,7 @@ name:
         uploaded
           ? typeof payload.asset_size === 'undefined'
             ? uploaded.buffer.byteLength
-            : Number(String(payload.asset_size))
+            : Number(String(Array.isArray(payload.asset_size) ? payload.asset_size[0] : payload.asset_size))
           : undefined,
       asset_data:
         typeof payload.asset_data === 'undefined'

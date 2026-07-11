@@ -6,11 +6,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 // Navbar and Footer provided via app/layout.tsx
 import Image from 'next/image';
-import { products } from '../../lib/mockData';
 import { Trash2, Plus, Minus, ShoppingBag, CreditCard, X } from 'lucide-react';
+import ModelViewer from '../../components/ModelViewer';
+
+type LiveProduct = { id: string; name: string; price: number; asset_name: string | null };
+
 
 interface CartItem {
-  id: number;
+  id: string;
   name: string;
   price: number;
   model: string;
@@ -26,6 +29,10 @@ const backgroundImages = [
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [liveProductMap, setLiveProductMap] = useState<Map<number, { price: number; model: string }>>(
+    () => new Map(),
+  );
+
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentImage, setCurrentImage] = useState(0);
 
@@ -40,7 +47,34 @@ export default function CartPage() {
   useEffect(() => {
     const savedCart = localStorage.getItem('douche_cart');
     if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
+      try {
+        const parsed = JSON.parse(savedCart);
+
+        // Normalize legacy carts to the expected CartItem shape.
+        // Some legacy carts may store product_id instead of id.
+        const normalized: CartItem[] = Array.isArray(parsed)
+          ? (parsed as any[])
+              .map((it) => {
+                const id = it?.id ?? it?.product_id ?? null;
+                return {
+                  id: id != null ? String(id) : '',
+                  name: String(it?.name ?? ''),
+                  price: Number(it?.price ?? 0),
+                  model: String(it?.model ?? ''),
+                  quantity: Number(it?.quantity ?? 1),
+                };
+              })
+              // Prevent empty-id duplicates in React
+              .filter((x) => Boolean(x.id))
+          : [];
+
+        setCartItems(normalized);
+      } catch {
+        setCartItems([
+          { id: 2, name: "Royal Chair", price: 75000, model: "chair.glb", quantity: 1 },
+          { id: 3, name: "Coffee Table", price: 8000, model: "coffee.glb", quantity: 2 },
+        ]);
+      }
     } else {
       // Default demo items if cart is empty/new
       setCartItems([
@@ -51,12 +85,68 @@ export default function CartPage() {
     setIsLoaded(true);
   }, []);
 
+
+  // Load live product details (real-time) to overwrite name/price/model
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const ids = cartItems.map((x) => x.id);
+    if (ids.length === 0) return;
+
+    let alive = true;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/cart/items', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ productIds: ids }),
+        });
+
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: Array<{ id: number; name: string; price: number; asset_name?: string | null; model?: string | null }> };
+        const items = Array.isArray(data.items) ? data.items : [];
+
+        if (!alive) return;
+
+        const map = new Map<string, { name: string; price: number; model: string }>();
+        for (const p of items) {
+          const model = (p.asset_name ? String(p.asset_name) : (p.model ? String(p.model) : 'chair.glb'));
+          map.set(String(p.id), { name: String(p.name ?? ''), price: Number(p.price ?? 0), model });
+        }
+
+        setCartItems((prev) =>
+          prev.map((ci) => {
+            const live = map.get(ci.id);
+            return live
+              ? {
+                  ...ci,
+                  name: live.name || ci.name,
+                  price: Number.isFinite(live.price) ? live.price : ci.price,
+                  model: live.model || ci.model,
+                }
+              : ci;
+          }),
+        );
+
+        setLiveProductMap(map as any);
+      } catch {
+        // ignore - cart will still show local values
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [isLoaded]);
+
   // Save to localStorage whenever cart changes
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem('douche_cart', JSON.stringify(cartItems));
     }
   }, [cartItems, isLoaded]);
+
 
   const updateQuantity = (id: number, delta: number) => {
     setCartItems(items =>
@@ -167,18 +257,14 @@ export default function CartPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="bg-white p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6">
-                  {/* Product Image */}
+                  {cartItems.map((item, index) => (
+                <div key={String(item.id ?? `cart-${index}`)} className="bg-white p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6">
+
+                  {/* Product 3D Preview */}
                   <div className="w-full md:w-48 h-48 flex-shrink-0 bg-[#f5f5f5] relative overflow-hidden">
-                    {
-                      (() => {
-                        const p = products.find((pr) => pr.id === item.id);
-                        const src = p?.images?.[0] || '/models/.keep';
-                        return <Image src={src} alt={item.name} fill className="object-cover" />;
-                      })()
-                    }
+                    <ModelViewer modelUrl={item.model ? `/models/${item.model}` : '/models/chair.glb'} />
                   </div>
+
 
                   {/* Product Details */}
                   <div className="flex-1 flex flex-col justify-between">

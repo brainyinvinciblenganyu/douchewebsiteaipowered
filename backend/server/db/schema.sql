@@ -1,4 +1,4 @@
--- Core schema for the Douche e-commerce app
+I love you, my dear, I found back. One day ago. I log in and I get our accountant things. I don't search when they're gonna ask me when they go. What do you explain? Yeah, it's green. Client email is. Yes. Yeah. It takes them to slash and. Why did you do it? I want to. Time. -- Core schema for the Douche e-commerce app
 -- Run this in Neon SQL editor or your migration tool.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

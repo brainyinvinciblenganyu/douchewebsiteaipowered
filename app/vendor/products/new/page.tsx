@@ -340,7 +340,6 @@ export default function NewVendorProductPage() {
       // Only send actual bytes if a new file was selected.
       if (selectedFile) {
         form.append('asset_file', selectedFile);
-        form.append('asset_size', String(selectedFile.size));
       }
 
       const response = await fetch(
