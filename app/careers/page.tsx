@@ -16,14 +16,14 @@ export default function CareersPage() {
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             <div className="rounded-[28px] border border-slate-200/80 bg-slate-50 p-6 dark:border-slate-700/80 dark:bg-slate-900/80">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0058a3]/10 text-[#0058a3]">
                 <Sparkles size={20} />
               </div>
               <h2 className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">Product designers</h2>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Create elegant, high-conversion shopping journeys with immersive storytelling.</p>
             </div>
             <div className="rounded-[28px] border border-slate-200/80 bg-slate-50 p-6 dark:border-slate-700/80 dark:bg-slate-900/80">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0058a3]/10 text-[#0058a3]">
                 <Users2 size={20} />
               </div>
               <h2 className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">Frontend engineers</h2>

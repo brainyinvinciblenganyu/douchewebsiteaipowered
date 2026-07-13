@@ -32,7 +32,8 @@ router.post('/', async (req: Request, res: Response) => {
       userId: session.userId,
       totalAmount: total,
       currency,
-      status: 'paid',
+      status: typeof payload.status === 'string' ? payload.status : 'paid',
+
       items: items.map((it: { productId?: unknown; quantity?: unknown; unitPrice?: unknown }) => ({
         productId: String(it.productId),
         quantity: Number(it.quantity),
@@ -42,8 +43,11 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json({ status: 'success', orderId: order.id, createdAt: order.createdAt });
   } catch (error) {
-    console.error('Create order error:', error);
-    res.status(500).json({ error: 'Checkout failed' });
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
   }
 });
 
@@ -72,3 +76,4 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 export default router;
+

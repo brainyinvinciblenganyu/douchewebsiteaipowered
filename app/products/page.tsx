@@ -78,7 +78,7 @@ export default function ProductsPage() {
                     <div className="mt-4">
                       <p className="text-sm uppercase tracking-[0.22em] text-slate-500">{p.category || 'Product'}</p>
                       <h2 className="mt-2 text-lg font-semibold text-slate-950">{p.name}</h2>
-                      <p className="mt-2 text-sm font-semibold text-sky-700">
+                      <p className="mt-2 text-sm font-semibold text-[#0058a3]">
                         {p.currency} {p.price.toLocaleString()}
                       </p>
                     </div>

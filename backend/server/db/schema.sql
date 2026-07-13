@@ -1,5 +1,3 @@
-I love you, my dear, I found back. One day ago. I log in and I get our accountant things. I don't search when they're gonna ask me when they go. What do you explain? Yeah, it's green. Client email is. Yes. Yeah. It takes them to slash and. Why did you do it? I want to. Time. -- Core schema for the Douche e-commerce app
--- Run this in Neon SQL editor or your migration tool.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -83,6 +81,17 @@ CREATE TABLE IF NOT EXISTS order_items (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS product_reviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  rating integer NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  title text,
+  body text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (product_id, user_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_products_vendor_user_id ON products(vendor_user_id);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
@@ -91,4 +100,5 @@ CREATE INDEX IF NOT EXISTS idx_user_interactions_event_type ON user_interactions
 CREATE INDEX IF NOT EXISTS idx_user_interactions_product_id ON user_interactions(product_id);
 CREATE INDEX IF NOT EXISTS idx_recommendation_cache_user_id ON recommendation_cache(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON product_reviews(product_id, created_at DESC);
 

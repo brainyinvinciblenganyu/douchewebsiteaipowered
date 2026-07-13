@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import RequireAuth from '../../../components/RequireAuth';
 
 interface CartItem {
   id: number;
@@ -11,6 +12,14 @@ interface CartItem {
 }
 
 export default function CartCheckoutPage() {
+  return (
+    <RequireAuth>
+      <CartCheckoutPageContent />
+    </RequireAuth>
+  );
+}
+
+function CartCheckoutPageContent() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [submitted, setSubmitted] = useState(false);
 

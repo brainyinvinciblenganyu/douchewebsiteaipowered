@@ -296,7 +296,7 @@ export default function AboutPage() {
                               <span className="text-slate-950">{x.icon}</span>
                               <span className="text-sm font-semibold text-slate-900">{x.t}</span>
                             </div>
-                            <CheckCircle2 className="text-sky-600" size={18} />
+                            <CheckCircle2 className="text-[#0058a3]" size={18} />
                           </div>
                         ))}
                       </div>
@@ -432,7 +432,7 @@ export default function AboutPage() {
 
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { title: 'Integrity', icon: <ShieldCheck size={22} />, bg: 'from-sky-50 to-white', tint: 'text-sky-700' },
+              { title: 'Integrity', icon: <ShieldCheck size={22} />, bg: 'from-[#e8f2fa] to-white', tint: 'text-[#0058a3]' },
               { title: 'Innovation', icon: <Sparkles size={22} />, bg: 'from-cyan-50 to-white', tint: 'text-cyan-700' },
               { title: 'Sustainability', icon: <Leaf size={22} />, bg: 'from-emerald-50 to-white', tint: 'text-emerald-700' },
               { title: 'Customer First', icon: <Users size={22} />, bg: 'from-amber-50 to-white', tint: 'text-amber-700' },
@@ -557,7 +557,7 @@ export default function AboutPage() {
                       <p className="text-sm font-semibold text-slate-950">{t.name}</p>
                       <div className="mt-1 flex items-center gap-1" aria-label="5 star rating">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} size={14} className="fill-sky-600 text-sky-600" aria-hidden />
+                          <Star key={i} size={14} className="fill-amber-400 text-amber-400" aria-hidden />
                         ))}
                       </div>
                     </div>
@@ -585,7 +585,7 @@ export default function AboutPage() {
             ].map((x) => (
               <Reveal key={x.t}>
                 <div className="rounded-[28px] border border-slate-200/70 bg-white/95 p-8 shadow-sm backdrop-blur-sm transition hover:-translate-y-1 hover:shadow-lg">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-50 to-white text-slate-950">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#e8f2fa] to-white text-[#0058a3]">
                     {x.icon}
                   </div>
                   <p className="mt-4 text-base font-semibold text-slate-950">{x.t}</p>
@@ -613,7 +613,7 @@ export default function AboutPage() {
         {/* Section 12: Final CTA */}
         <section className="mx-auto max-w-7xl px-6 pb-20">
           <Reveal>
-            <div className="rounded-[36px] bg-gradient-to-r from-slate-950 via-slate-900 to-sky-900 p-10 text-white shadow-2xl shadow-slate-900/20">
+            <div className="rounded-[36px] bg-gradient-to-r from-slate-950 via-slate-900 to-[#003d70] p-10 text-white shadow-2xl shadow-slate-900/20">
               <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] items-center">
                 <div>
                   <h2 className="text-4xl font-semibold">Ready to shop smarter?</h2>

@@ -106,6 +106,6 @@ if ($httpCode === 200) {
     echo json_encode([
         'error' => 'AI Generation failed',
         'debug' => $result
-    ]);
+     ]);
 }
 ?>

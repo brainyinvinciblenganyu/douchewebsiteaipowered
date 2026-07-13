@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useBackendAuth as useAuth } from '../../../components/BackendAuthProvider';
-import { ArrowRight, Building2, Loader2, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Building2, Eye, EyeOff, Loader2, ShieldCheck, Sparkles, User, UserPlus } from 'lucide-react';
 
 type Role = 'customer' | 'vendor';
 
@@ -33,6 +33,7 @@ export default function LoginPage() {
   const [role, setRole] = useState<Role>('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,26 +43,6 @@ export default function LoginPage() {
       router.replace(user.role === 'vendor' ? '/vendor/dashboard' : '/recommendations');
     }
   }, [router, user]);
-
-  useEffect(() => {
-    // Seed email/password placeholders based on selected role.
-    // (Still uses the shared signin page.)
-    if (!email && !password) {
-      if (role === 'vendor') {
-        setEmail('samuel@kokora.com');
-        setPassword('vendor123');
-      } else {
-        setEmail('aisha@douche.com');
-        setPassword('customer123');
-      }
-    }
-  }, [role]);
-
-  const demoText = useMemo(() => {
-    return role === 'vendor'
-      ? { label: 'Vendor demo', email: 'samuel@kokora.com', password: 'vendor123' }
-      : { label: 'Customer demo', email: 'aisha@douche.com', password: 'customer123' };
-  }, [role]);
 
   if (user) return null;
 
@@ -118,25 +99,29 @@ export default function LoginPage() {
 
           <div className="mt-6 space-y-3">
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
-              <ShieldCheck size={18} className="text-sky-600" />
+              <ShieldCheck size={18} className="text-[#0058a3]" />
               <span className="text-sm text-slate-700 dark:text-slate-300">Protected role-based access</span>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
-              <Sparkles size={18} className="text-sky-600" />
+              <Sparkles size={18} className="text-[#0058a3]" />
               <span className="text-sm text-slate-700 dark:text-slate-300">Personalized recommendations for customers</span>
             </div>
           </div>
 
-          <p className="mt-8 text-sm text-slate-500 dark:text-slate-400">
-            New here?{' '}
-            <Link href="/auth/register" className="font-semibold text-sky-600">
+          <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <p className="text-sm text-slate-500 dark:text-slate-400">New here? Create an account to get started.</p>
+            <Link
+              href="/auth/register"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#0058a3] px-6 py-3 text-sm font-bold text-[#0058a3] transition hover:bg-[#0058a3] hover:text-white"
+            >
+              <UserPlus size={18} />
               Create an account
             </Link>
-          </p>
+          </div>
         </section>
 
         <section className="flex-1 rounded-[32px] border border-slate-200/70 bg-slate-950/95 p-8 text-white shadow-2xl shadow-slate-950/20">
-          <h2 className="text-2xl font-semibold">Sign in</h2>
+          <h2 className="text-3xl font-bold">Sign in</h2>
           <p className="mt-3 text-slate-300">Role: {role === 'vendor' ? 'Vendor' : 'Customer'}</p>
 
           <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
@@ -160,32 +145,45 @@ export default function LoginPage() {
               <label className="mb-2 block text-sm font-medium text-slate-300" htmlFor="password">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white outline-none ring-0"
-                required
-                autoComplete={role === 'vendor' ? 'current-password' : 'current-password'}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 pr-12 text-white outline-none ring-0"
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-white"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               <PasswordStrengthHint password={password} />
             </div>
 
-            {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 text-sm text-slate-300">
-              <p className="font-semibold text-white">{demoText.label}</p>
-              <p>
-                {demoText.email} · {demoText.password}
+            {message ? (
+              <p className="rounded-2xl border border-emerald-800 bg-emerald-950/40 px-4 py-3 text-sm font-medium text-emerald-300">
+                {message}
               </p>
-            </div>
+            ) : null}
+            {error ? (
+              <div className="flex items-start gap-2 rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm font-medium text-rose-300">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            ) : null}
 
             <button
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-500 px-4 py-3 font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0058a3] px-6 py-4 text-base font-bold text-white shadow-lg shadow-[#0058a3]/30 transition hover:-translate-y-0.5 hover:bg-[#1c6fb0] hover:shadow-xl hover:shadow-[#0058a3]/40 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {isSubmitting ? (
                 <>
@@ -201,7 +199,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-sm text-slate-400">
             Need help?{' '}
-            <Link href="/contact" className="text-sky-300">
+            <Link href="/contact" className="text-[#5cc7ff]">
               Contact the team
             </Link>{' '}
             for onboarding.

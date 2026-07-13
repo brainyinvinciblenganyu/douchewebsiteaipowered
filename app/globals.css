@@ -28,6 +28,19 @@
   --brand-surface: rgba(0, 119, 200, 0.08);
 
   --shadow: 0 24px 70px rgba(17, 24, 39, 0.08);
+
+  /* ---- Component tokens (Navbar/Footer/Button/Card/Input/ThemeToggle) ----
+     IKEA blue + yellow, Nike-style high-contrast black/white neutrals. */
+  --color-primary: var(--hard-accent);          /* #0058a3 IKEA blue */
+  --color-primary-hover: var(--hard-accent-strong); /* #003d70 */
+  --color-accent: #ffdb00;                      /* IKEA yellow */
+  --color-accent-hover: #e6c600;
+  --color-white: #ffffff;
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--muted);
+  --color-border: var(--border);
+  --color-surface: var(--surface-strong);
+  --color-surface-alt: #f1f3f6;
 }
 
 html {
@@ -89,6 +102,18 @@ img {
   --accent-soft: rgba(92,199,255,0.18);
   --accent-warm: #f59e0b;
   --shadow: 0 24px 70px rgba(2,6,23,0.34);
+
+  /* ---- Component tokens (dark mode) ---- */
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-strong);
+  --color-accent: #ffdb00;
+  --color-accent-hover: #e6c600;
+  --color-white: #ffffff;
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--muted);
+  --color-border: var(--border);
+  --color-surface: var(--surface-strong);
+  --color-surface-alt: #1a2333;
   background-image:
     radial-gradient(circle at top left, rgba(92,199,255,0.14), transparent 30%),
     radial-gradient(circle at 85% 8%, rgba(245,158,11,0.12), transparent 24%),

@@ -64,7 +64,7 @@ export default function VendorDashboardPage() {
                       <p className="text-sm font-semibold text-blue-100">{item.eta}</p>
                     </div>
                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-blue-300/50">
-                      <div className="h-full rounded-full bg-sky-300" style={{ width: `${item.progress}%` }} />
+                      <div className="h-full rounded-full bg-[#ffdb00]" style={{ width: `${item.progress}%` }} />
                     </div>
                   </div>
                 ))}

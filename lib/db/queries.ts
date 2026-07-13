@@ -400,3 +400,88 @@ export async function getOrdersForCustomer(userId: string): Promise<DbOrder[]> {
   return groupOrderRows(res.rows as Array<Record<string, unknown>>);
 }
 
+export type DbProductReview = {
+  id: string;
+  productId: string;
+  userId: string | null;
+  authorName: string | null;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  createdAt: string;
+};
+
+export type RatingSummary = {
+  average: number;
+  count: number;
+};
+
+export async function getRatingSummary(productId: string): Promise<RatingSummary> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT COUNT(*)::int AS count, COALESCE(AVG(rating), 0)::float AS average
+     FROM product_reviews
+     WHERE product_id = $1`,
+    [productId],
+  );
+  const row = res.rows[0] as { count?: number; average?: number } | undefined;
+  return {
+    count: Number(row?.count ?? 0),
+    average: Number(row?.average ?? 0),
+  };
+}
+
+export async function getReviewsForProduct(productId: string): Promise<DbProductReview[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT r.id, r.product_id, r.user_id, u.name AS author_name, r.rating, r.title, r.body, r.created_at
+     FROM product_reviews r
+     LEFT JOIN users u ON u.id = r.user_id
+     WHERE r.product_id = $1
+     ORDER BY r.created_at DESC`,
+    [productId],
+  );
+  return (res.rows as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id),
+    productId: String(row.product_id),
+    userId: row.user_id != null ? String(row.user_id) : null,
+    authorName: (row.author_name as string | null) ?? null,
+    rating: Number(row.rating),
+    title: (row.title as string | null) ?? null,
+    body: (row.body as string | null) ?? null,
+    createdAt: String(row.created_at),
+  }));
+}
+
+export async function upsertReview(params: {
+  productId: string;
+  userId: string;
+  rating: number;
+  title?: string | null;
+  body?: string | null;
+}): Promise<DbProductReview> {
+  const pool = getPool();
+  const res = await pool.query(
+    `INSERT INTO product_reviews (product_id, user_id, rating, title, body)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (product_id, user_id) DO UPDATE
+       SET rating = EXCLUDED.rating,
+           title = EXCLUDED.title,
+           body = EXCLUDED.body,
+           created_at = now()
+     RETURNING id, product_id, user_id, rating, title, body, created_at`,
+    [params.productId, params.userId, params.rating, params.title ?? null, params.body ?? null],
+  );
+  const row = res.rows[0] as Record<string, unknown>;
+  return {
+    id: String(row.id),
+    productId: String(row.product_id),
+    userId: row.user_id != null ? String(row.user_id) : null,
+    authorName: null,
+    rating: Number(row.rating),
+    title: (row.title as string | null) ?? null,
+    body: (row.body as string | null) ?? null,
+    createdAt: String(row.created_at),
+  };
+}
+

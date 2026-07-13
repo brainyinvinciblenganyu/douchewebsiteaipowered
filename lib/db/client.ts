@@ -14,6 +14,7 @@ class InMemoryPool implements DbPoolLike {
   private recommendationCache: Array<Record<string, unknown>> = [];
   private orders: Array<Record<string, unknown>> = [];
   private orderItems: Array<Record<string, unknown>> = [];
+  private productReviews: Array<Record<string, unknown>> = [];
 
   async query(text: string, params: unknown[] = []) {
     const normalized = text.trim().toLowerCase();
@@ -160,6 +161,42 @@ class InMemoryPool implements DbPoolLike {
       return { rows };
     }
 
+    if (normalized.includes('insert into product_reviews')) {
+      const [productId, userId, rating, title, body] = params as [string, string, number, string | null, string | null];
+      const existingIndex = this.productReviews.findIndex(
+        (r) => String(r.product_id) === String(productId) && String(r.user_id) === String(userId),
+      );
+      const row = {
+        id: existingIndex > -1 ? this.productReviews[existingIndex]!.id : `review-${this.productReviews.length + 1}`,
+        product_id: productId,
+        user_id: userId,
+        rating,
+        title: title ?? null,
+        body: body ?? null,
+        created_at: new Date().toISOString(),
+      };
+      if (existingIndex > -1) this.productReviews[existingIndex] = row;
+      else this.productReviews.push(row);
+      return { rows: [row] };
+    }
+
+    if (normalized.includes('from product_reviews')) {
+      const [productId] = params as [string];
+      const matches = this.productReviews.filter((r) => String(r.product_id) === String(productId));
+
+      if (normalized.includes('count(*)')) {
+        const count = matches.length;
+        const average = count > 0 ? matches.reduce((sum, r) => sum + Number(r.rating), 0) / count : 0;
+        return { rows: [{ count, average }] };
+      }
+
+      const rows = matches
+        .slice()
+        .sort((a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime())
+        .map((r) => ({ ...r, author_name: null }));
+      return { rows };
+    }
+
     return { rows: [] };
   }
 }
@@ -203,6 +240,6 @@ export function getPool(): DbPoolLike {
     max: 5,
   });
 
-  pool = primaryPool as DbPoolLike;
+  pool = new FallbackPool(primaryPool as DbPoolLike, new InMemoryPool());
   return pool;
 }

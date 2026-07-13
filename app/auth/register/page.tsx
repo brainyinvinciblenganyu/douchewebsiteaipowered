@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Building2, Loader2, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Building2, Eye, EyeOff, Loader2, LogIn, ShieldCheck, Sparkles, User } from 'lucide-react';
 import { useBackendAuth as useAuth } from '../../../components/BackendAuthProvider';
 import { getAuthApiUrl } from '../../../lib/apiConfig';
 
@@ -34,6 +34,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -166,25 +168,29 @@ export default function RegisterPage() {
 
           <div className="mt-6 space-y-3">
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
-              <ShieldCheck size={18} className="text-sky-600" />
+              <ShieldCheck size={18} className="text-[#0058a3]" />
               <span className="text-sm text-slate-700 dark:text-slate-300">Sign up to unlock personalized AI shopping</span>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
-              <Sparkles size={18} className="text-sky-600" />
+              <Sparkles size={18} className="text-[#0058a3]" />
               <span className="text-sm text-slate-700 dark:text-slate-300">Interactive 3D preview & recommendations</span>
             </div>
           </div>
 
-          <p className="mt-8 text-sm text-slate-500 dark:text-slate-400">
-            Already have an account?{' '}
-            <Link href="/auth/login" className="font-semibold text-sky-600">
+          <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Already have an account?</p>
+            <Link
+              href="/auth/login"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#0058a3] px-6 py-3 text-sm font-bold text-[#0058a3] transition hover:bg-[#0058a3] hover:text-white"
+            >
+              <LogIn size={18} />
               Sign in
             </Link>
-          </p>
+          </div>
         </section>
 
         <section className="flex-1 rounded-[32px] border border-slate-200/70 bg-slate-950/95 p-8 text-white shadow-2xl shadow-slate-950/20">
-          <h2 className="text-2xl font-semibold">Create your account</h2>
+          <h2 className="text-3xl font-bold">Create your account</h2>
           <p className="mt-3 text-slate-300">{role === 'vendor' ? 'Vendor details' : 'Customer details'}</p>
 
           <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
@@ -257,34 +263,67 @@ export default function RegisterPage() {
                 <label className="mb-2 block text-sm font-medium text-slate-300" htmlFor="password">
                   Password
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white outline-none ring-0"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 pr-12 text-white outline-none ring-0"
+                    required
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-white"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-300" htmlFor="confirmPassword">
                   Confirm password
                 </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white outline-none ring-0"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 pr-12 text-white outline-none ring-0"
+                    required
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-white"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-            {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
+            {error ? (
+              <div className="flex items-start gap-2 rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm font-medium text-rose-300">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            ) : null}
+            {message ? (
+              <p className="rounded-2xl border border-emerald-800 bg-emerald-950/40 px-4 py-3 text-sm font-medium text-emerald-300">
+                {message}
+              </p>
+            ) : null}
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 text-sm text-slate-300">
               <p className="font-semibold text-white">Registration note</p>
@@ -296,7 +335,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-500 px-4 py-3 font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0058a3] px-6 py-4 text-base font-bold text-white shadow-lg shadow-[#0058a3]/30 transition hover:-translate-y-0.5 hover:bg-[#1c6fb0] hover:shadow-xl hover:shadow-[#0058a3]/40 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {isSubmitting ? (
                 <>

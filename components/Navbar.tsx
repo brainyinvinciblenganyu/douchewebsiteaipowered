@@ -16,7 +16,7 @@ export default function Navbar() {
     ...(user?.role === 'customer' ? [] : [{ href: '/', label: 'Home' }]),
 
 
-    ...(user?.role === 'vendor' ? [] : [{ href: '/products', label: 'Products' }]),
+    ...(user?.role === 'customer' ? [{ href: '/products', label: 'Products' }] : []),
 
     ...(user?.role === 'vendor' ? [{ href: '/vendor/dashboard', label: 'Vendor' }] : []),
     ...(user?.role === 'customer' ? [{ href: '/vr', label: 'VR Showroom' }] : []),

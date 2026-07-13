@@ -40,7 +40,7 @@ export default function VendorAIGenerationPage() {
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.eta}</p>
                   </div>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-                    <div className="h-full rounded-full bg-sky-500" style={{ width: `${item.progress}%` }} />
+                    <div className="h-full rounded-full bg-[#0058a3]" style={{ width: `${item.progress}%` }} />
                   </div>
                 </div>
               ))}

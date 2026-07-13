@@ -12,6 +12,7 @@ export async function POST(req: Request) {
         cookie: req.headers.get('cookie') || '',
       },
       body: JSON.stringify(body),
+      // status is optional; backend defaults it if missing
     });
 
     const data = await backendRes.json().catch(() => ({}));

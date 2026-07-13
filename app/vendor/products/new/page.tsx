@@ -424,7 +424,7 @@ export default function NewVendorProductPage() {
                     onClick={() => setStep(s as 1 | 2 | 3 | 4)}
                     className={`rounded-3xl border px-4 py-4 text-left transition ${
                       active
-                        ? 'border-sky-300 bg-sky-500/80 text-white'
+                        ? 'border-[#5cc7ff] bg-[#0058a3] text-white'
                         : done
                           ? 'border-emerald-300 bg-emerald-800/80 text-white'
                           : 'border-blue-300/50 bg-blue-500/30 text-blue-100'
@@ -694,7 +694,7 @@ export default function NewVendorProductPage() {
                               onClick={() => setActiveVersionId(v.versionId)}
                               className={`w-full rounded-3xl border p-4 text-left transition ${
                                 isActive
-                                  ? 'border-sky-500 bg-sky-50'
+                                  ? 'border-[#0058a3] bg-[#0058a3]/5'
                                   : 'border-slate-200 bg-white/70 hover:bg-white'
                               }`}
                             >
@@ -706,7 +706,7 @@ export default function NewVendorProductPage() {
                                   </p>
                                 </div>
                                 {isActive && (
-                                  <CheckCircle2 size={18} className="text-sky-600 shrink-0" />
+                                  <CheckCircle2 size={18} className="text-[#0058a3] shrink-0" />
                                 )}
                               </div>
                               <p className="mt-2 text-xs text-blue-500 break-all">

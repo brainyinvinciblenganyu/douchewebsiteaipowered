@@ -4,8 +4,11 @@ import type { File as MulterFile } from 'multer';
 import {
   createProduct,
   deleteProduct,
+  getRatingSummary,
+  getReviewsForProduct,
   listProducts,
   updateProduct,
+  upsertReview,
 } from '../../../lib/db/queries.js';
 
 import { getSessionFromRequest } from '../../../lib/auth/session.js';
@@ -91,11 +94,7 @@ function parsePrice(value: unknown): number | undefined {
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const vendorUserId =
-      firstString(req.query.vendor_user_id) ??
-      getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0])
-        ?.userId ??
-      null;
+    const vendorUserId = firstString(req.query.vendor_user_id);
 
     const products = await listProducts(vendorUserId ? { vendorUserId } : undefined);
     res.json({ products });
@@ -311,6 +310,65 @@ name:
   } catch (error) {
     console.error('Update product error:', error);
     return res.status(500).json({ error: 'Failed to update product' });
+  }
+});
+
+router.get('/:id/reviews', async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.id;
+    const [summary, reviews] = await Promise.all([
+      getRatingSummary(productId),
+      getReviewsForProduct(productId),
+    ]);
+
+    const session = getSessionFromRequest(
+      req as Parameters<typeof getSessionFromRequest>[0],
+    );
+    const myReview = session
+      ? reviews.find((r) => r.userId === session.userId) ?? null
+      : null;
+
+    return res.status(200).json({ summary, reviews, myReview });
+  } catch (error) {
+    console.error('Failed to load reviews', error);
+    return res.status(500).json({ error: 'Failed to load reviews' });
+  }
+});
+
+router.post('/:id/reviews', async (req: Request, res: Response) => {
+  try {
+    const session = getSessionFromRequest(
+      req as Parameters<typeof getSessionFromRequest>[0],
+    );
+
+    if (!session) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const payload = req.body ?? {};
+    const rating = Number(payload.rating);
+
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be an integer between 1 and 5' });
+    }
+
+    const title = firstString(payload.title);
+    const body = firstString(payload.body);
+
+    const review = await upsertReview({
+      productId: req.params.id,
+      userId: session.userId,
+      rating,
+      title,
+      body,
+    });
+
+    const summary = await getRatingSummary(req.params.id);
+
+    return res.status(200).json({ review, summary });
+  } catch (error) {
+    console.error('Failed to submit review', error);
+    return res.status(500).json({ error: 'Failed to submit review' });
   }
 });
 

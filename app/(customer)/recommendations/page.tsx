@@ -60,10 +60,10 @@ export default function RecommendationsPage() {
           >
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full bg-sky-50 dark:bg-sky-950/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#0058a3]/10 dark:bg-[#0058a3]/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#0058a3] dark:text-[#5cc7ff]">
                   {isAiPowered ? (
                     <>
-                      <Sparkles size={14} className="animate-pulse text-sky-600 dark:text-sky-400" />
+                      <Sparkles size={14} className="animate-pulse text-[#0058a3] dark:text-[#5cc7ff]" />
                       AI Preference Model Active
                     </>
                   ) : (
@@ -82,7 +82,7 @@ export default function RecommendationsPage() {
 
               <Link
                 href="/products"
-                className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition-all hover:shadow-lg hover:shadow-sky-500/20"
+                className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition-all hover:shadow-lg hover:shadow-[#0058a3]/20"
               >
                 Browse Full Catalog
                 <ArrowRight size={18} />
@@ -157,7 +157,7 @@ export default function RecommendationsPage() {
                       <p className="text-xs uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
                         {product.category}
                       </p>
-                      <h2 className="mt-1.5 text-2xl font-semibold text-slate-900 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                      <h2 className="mt-1.5 text-2xl font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#0058a3] dark:group-hover:text-[#5cc7ff] transition-colors">
                         {product.name}
                       </h2>
                     </div>
@@ -172,10 +172,10 @@ export default function RecommendationsPage() {
                   </p>
 
                   {/* AI Explanation Reason Box */}
-                  <div className="mb-6 rounded-2xl border border-sky-100 bg-sky-50/40 p-4 dark:border-sky-950/30 dark:bg-sky-950/20">
+                  <div className="mb-6 rounded-2xl border border-[#0058a3]/15 bg-[#0058a3]/5 p-4 dark:border-[#0058a3]/25 dark:bg-[#0058a3]/10">
                     <div className="flex gap-2.5 items-start">
-                      <Sparkles size={16} className="text-sky-600 dark:text-sky-400 mt-0.5 shrink-0 animate-pulse" />
-                      <p className="text-xs text-sky-800 dark:text-sky-300 font-medium leading-relaxed">
+                      <Sparkles size={16} className="text-[#0058a3] dark:text-[#5cc7ff] mt-0.5 shrink-0 animate-pulse" />
+                      <p className="text-xs text-[#003d70] dark:text-[#8fd4ff] font-medium leading-relaxed">
                         {product.reason}
                       </p>
                     </div>
@@ -183,7 +183,7 @@ export default function RecommendationsPage() {
 
                   <Link
                     href={`/product/${product.id}`}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-sky-600 dark:text-sky-400 transition hover:opacity-85 hover:underline"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#0058a3] dark:text-[#5cc7ff] transition hover:opacity-85 hover:underline"
                   >
                     Explore Product Details
                     <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />

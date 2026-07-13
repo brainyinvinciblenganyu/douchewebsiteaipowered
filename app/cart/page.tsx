@@ -2,12 +2,14 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
 // Navbar and Footer provided via app/layout.tsx
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Trash2, Plus, Minus, ShoppingBag, CreditCard, X } from 'lucide-react';
 import ModelViewer from '../../components/ModelViewer';
+import RequireAuth from '../../components/RequireAuth';
 
 type LiveProduct = { id: string; name: string; price: number; asset_name: string | null };
 
@@ -28,6 +30,15 @@ const backgroundImages = [
 ];
 
 export default function CartPage() {
+  return (
+    <RequireAuth>
+      <CartPageContent />
+    </RequireAuth>
+  );
+}
+
+function CartPageContent() {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [liveProductMap, setLiveProductMap] = useState<Map<number, { price: number; model: string }>>(
     () => new Map(),
@@ -168,6 +179,39 @@ export default function CartPage() {
     }
   };
 
+  const handleSaveOrder = async () => {
+    try {
+      const items = cartItems.map((it) => ({
+        productId: it.id,
+        quantity: it.quantity,
+        unitPrice: it.price,
+      }));
+
+      const body = {
+        items,
+        currency: 'FCFA',
+        status: 'pending',
+        total,
+      };
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Save order failed');
+
+      setCartItems([]);
+      alert(`Order saved! Order #${data.orderId}`);
+      router.push('/orders');
+    } catch (e) {
+      console.error(e);
+      alert('Save order failed. Please try again.');
+    }
+  };
+
   const handleCheckout = async () => {
     try {
       const items = cartItems.map((it) => ({
@@ -183,6 +227,7 @@ export default function CartPage() {
           items,
           total,
           currency: 'FCFA',
+          status: 'confirmed',
         }),
       });
 
@@ -338,13 +383,21 @@ onClick={() => updateQuantity(item.id, -1)}
                   </div>
                 </div>
 
+                <div className="space-y-3 mb-4">
+                <button
+                  onClick={handleSaveOrder}
+                  className="w-full bg-white border border-[#0058a3] text-[#0058a3] py-4 rounded-lg font-semibold text-lg hover:bg-[#0058a3]/5 transition flex items-center justify-center gap-2 shadow-sm"
+                >
+                  Save Order
+                </button>
                 <button 
                   onClick={handleCheckout}
-className="w-full bg-[#0058a3] text-white py-4 rounded-lg font-semibold text-lg hover:bg-[#0058a3] transition mb-4 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                  className="w-full bg-[#0058a3] text-white py-4 rounded-lg font-semibold text-lg hover:bg-[#0058a3] transition flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                 >
                   <CreditCard size={20} />
                   Proceed to Checkout
                 </button>
+                </div>
 
                 <Link href="/products">
                   <button className="w-full border-2 border-[#0058a3] text-[#0058a3] py-3 rounded-lg font-semibold hover:bg-[#0058a3] hover:text-white transition">

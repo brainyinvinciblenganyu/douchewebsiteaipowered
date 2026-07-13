@@ -10,9 +10,15 @@ export async function GET(req: Request) {
     const response = await fetch(backendUrl, {
       method: 'GET',
       cache: 'no-store',
+      headers: {
+        // Ensure cookies/session are forwarded for vendor filtering (if backend uses it)
+        cookie: req.headers.get('cookie') || req.headers.get('Cookie') || '',
+      },
     });
 
     const data = await response.json();
+    // Some backend responses might be { products: [] }.
+    // Pass-through so the UI can decide fallback behavior.
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Failed to proxy list products', error);
