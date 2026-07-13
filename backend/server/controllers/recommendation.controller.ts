@@ -17,7 +17,7 @@ export async function handleTrack(req: Request, res: Response) {
     await repo.logInteraction({
       userId,
       eventType,
-      productId: productId ? Number(productId) : null,
+      productId: productId ? String(productId) : null,
       query: query || null,
       category: category || null,
       brand: brand || null,

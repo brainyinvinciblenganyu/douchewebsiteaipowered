@@ -36,14 +36,19 @@ CREATE TABLE IF NOT EXISTS products (
   asset_data text,
   asset_file bytea,
   status text NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')),
+  stock_quantity integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Idempotent: adds the column to already-existing tables (initDatabase()
+-- re-runs this whole file on every backend boot).
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity integer NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS user_interactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
   event_type text NOT NULL CHECK (event_type IN ('view', 'cart_add', 'wishlist_add', 'wishlist_remove', 'rate', 'search', 'purchase')),
-  product_id integer,
+  product_id uuid REFERENCES products(id) ON DELETE SET NULL,
   query text,
   category text,
   brand text,
@@ -51,6 +56,24 @@ CREATE TABLE IF NOT EXISTS user_interactions (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Legacy databases created user_interactions.product_id as integer, which cannot
+-- hold real (uuid) product ids. Migrate it in place; any old integer-based ids
+-- referred to mock/demo products and are no longer meaningful, so they're nulled.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'user_interactions'
+      AND column_name = 'product_id'
+      AND data_type = 'integer'
+  ) THEN
+    ALTER TABLE user_interactions ALTER COLUMN product_id TYPE uuid USING NULL;
+    ALTER TABLE user_interactions
+      ADD CONSTRAINT user_interactions_product_id_fkey
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS recommendation_cache (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

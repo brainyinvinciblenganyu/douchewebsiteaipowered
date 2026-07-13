@@ -1,11 +1,13 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 
-import { createUser, findUserByEmail, findUserById } from '../db/queries.js';
+import { createSessionRecord, createUser, findUserByEmail, findUserById, revokeSessionRecord } from '../db/queries.js';
 import { hashPassword, verifyPassword } from '../../../lib/auth/password.js';
 import { clearSessionCookie, getSessionFromRequest, setSessionCookie } from '../../../lib/auth/session.js';
 
 const authRouter = Router();
+
+const SESSION_TTL_SECONDS = Number(process.env.AUTH_SESSION_TTL_SECONDS || '2592000');
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -43,7 +45,8 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    setSessionCookie(res, { userId: user.id });
+    const sessionRecord = await createSessionRecord(user.id, SESSION_TTL_SECONDS);
+    setSessionCookie(res, { userId: user.id, sessionId: sessionRecord?.id });
     return res.status(200).json({ success: true });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
@@ -76,7 +79,8 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       location: parsed.location,
     });
 
-    setSessionCookie(res, { userId: user.id });
+    const sessionRecord = await createSessionRecord(user.id, SESSION_TTL_SECONDS);
+    setSessionCookie(res, { userId: user.id, sessionId: sessionRecord?.id });
     return res.status(201).json({ status: 'success' });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
@@ -119,8 +123,12 @@ authRouter.get('/me', async (req: Request, res: Response) => {
   }
 });
 
-authRouter.post('/logout', async (_req: Request, res: Response) => {
+authRouter.post('/logout', async (req: Request, res: Response) => {
   try {
+    const session = getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0]);
+    if (session?.sessionId) {
+      await revokeSessionRecord(session.sessionId);
+    }
     clearSessionCookie(res);
     return res.status(200).json({ status: 'success' });
   } catch (error) {

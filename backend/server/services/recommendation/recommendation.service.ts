@@ -1,12 +1,12 @@
 import { createHash } from 'crypto';
 import { getUserProfile } from './profile.service.js';
-import { rankAndSelectCandidates } from './ruleEngine.service.js';
+import { rankAndSelectCandidates, type ScoredProduct } from './ruleEngine.service.js';
 import { rankWithGemini } from './gemini.service.js';
-import { products, type Product } from '../../../../lib/mockData.js';
+import { listProducts } from '../../../../lib/db/queries.js';
 import { getCachedRecommendations, setCachedRecommendations } from '../../repositories/recommendation.repository.js';
 
 export interface RecommendationItem {
-  id: number;
+  id: string;
   name: string;
   price: number;
   currency: string;
@@ -27,6 +27,32 @@ function buildProfileHash(profile: ReturnType<typeof getUserProfile> extends Pro
   return createHash('sha256').update(JSON.stringify(profile)).digest('hex');
 }
 
+function toRecommendationItem(product: ScoredProduct, reason: string): RecommendationItem {
+  return {
+    id: product.id,
+    name: product.name,
+    price: Number(product.price),
+    currency: product.currency,
+    category: product.category || 'General',
+    model: product.asset_name || 'chair.glb',
+    images: [],
+    shortDescription: (product.description || '').slice(0, 160),
+    reason,
+    score: product.score,
+  };
+}
+
+function defaultReasonFor(c: ScoredProduct): string {
+  if (c.scoringBreakdown.wishlist > 0) return 'Highly prioritized from your wishlist.';
+  if (c.scoringBreakdown.cartMatch > 0) return 'Pairs great with items in your cart.';
+  if (c.scoringBreakdown.purchaseMatch > 0) return 'Frequently bought together with your purchase history.';
+  if (c.scoringBreakdown.collaborative > 0) return 'Popular with shoppers who have similar taste to you.';
+  if (c.scoringBreakdown.recentlyViewed > 0) return 'Matches products you recently explored.';
+  if (c.scoringBreakdown.searchMatch > 0) return 'Matches your recent searches.';
+  if (c.scoringBreakdown.categoryMatch > 0) return `Recommended based on your interest in ${c.category}.`;
+  return 'Popular on Douche';
+}
+
 export async function getRecommendations(userId: string | null): Promise<RecommendationResponse> {
   try {
     // 1. Load user profile (will be a default empty/new profile if userId is null)
@@ -43,7 +69,7 @@ export async function getRecommendations(userId: string | null): Promise<Recomme
       }
     }
 
-    // 2. Apply rules and score all products in catalog
+    // 2. Apply content-based + collaborative rules and score the real catalog
     const scoredCandidates = await rankAndSelectCandidates(profile, userId);
 
     // If there is no Gemini API key, or if Gemini call fails, we fall back to rule-based candidates
@@ -51,69 +77,24 @@ export async function getRecommendations(userId: string | null): Promise<Recomme
     let isAiPowered = false;
 
     // 3. Send top scored candidates to Gemini for re-ranking and personalized reasons
-    // Typically we send the top 20-50 candidates. Since our mock database is small (4 products),
-    // we send all candidates, but the code is written to slice the top 20 candidates.
     const topCandidates = scoredCandidates.slice(0, 20);
 
     if (process.env.GEMINI_API_KEY && topCandidates.length > 0) {
       const geminiResult = await rankWithGemini(profile, topCandidates);
       if (geminiResult && geminiResult.length > 0) {
         isAiPowered = true;
-        // Map Gemini recommendations back to full product details
         for (const item of geminiResult) {
-          const original = products.find((p) => p.id === item.id);
           const scored = scoredCandidates.find((c) => c.id === item.id);
-          if (original) {
-            finalRecommendations.push({
-              id: original.id,
-              name: original.name,
-              price: original.price,
-              currency: original.currency,
-              category: original.category,
-              model: original.model,
-              images: original.images || [],
-              shortDescription: original.shortDescription,
-              reason: item.reason,
-              score: scored ? scored.score : 0,
-            });
+          if (scored) {
+            finalRecommendations.push(toRecommendationItem(scored, item.reason));
           }
         }
       }
     }
 
-    // 4. Fallback to Rule-based Scoring Engine if Gemini was not used or failed
+    // 4. Fallback to rule-based scoring engine if Gemini was not used or failed
     if (finalRecommendations.length === 0) {
-      // Take the top 4 candidates directly from the scored list
-      finalRecommendations = scoredCandidates.slice(0, 4).map((c) => {
-        // Map default reasons based on highest scoring category/action
-        let reason = 'Popular on Douche';
-        if (c.scoringBreakdown.wishlist > 0) {
-          reason = 'Highly prioritized from your wishlist.';
-        } else if (c.scoringBreakdown.cartMatch > 0) {
-          reason = 'Pairs great with items in your cart.';
-        } else if (c.scoringBreakdown.purchaseMatch > 0) {
-          reason = 'Frequently bought together with your purchase history.';
-        } else if (c.scoringBreakdown.recentlyViewed > 0) {
-          reason = 'Matches products you recently explored.';
-        } else if (c.scoringBreakdown.searchMatch > 0) {
-          reason = 'Matches your recent searches.';
-        } else if (c.scoringBreakdown.categoryMatch > 0) {
-          reason = `Recommended based on your interest in ${c.category}.`;
-        }
-
-        return {
-          id: c.id,
-          name: c.name,
-          price: c.price,
-          currency: c.currency,
-          category: c.category,
-          model: c.model,
-          images: c.images || [],
-          shortDescription: c.shortDescription,
-          reason,
-          score: c.score,
-        };
-      });
+      finalRecommendations = scoredCandidates.slice(0, 4).map((c) => toRecommendationItem(c, defaultReasonFor(c)));
     }
 
     if (userId && finalRecommendations.length > 0) {
@@ -126,17 +107,18 @@ export async function getRecommendations(userId: string | null): Promise<Recomme
     };
   } catch (error) {
     console.error('Error in recommendation pipeline:', error);
-    // Safe final fallback: return first 4 products
+    // Safe final fallback: return the first 4 published products with no scoring
+    const fallbackCatalog = await listProducts().catch(() => []);
     return {
-      recommendations: products.slice(0, 4).map((p) => ({
+      recommendations: fallbackCatalog.slice(0, 4).map((p) => ({
         id: p.id,
         name: p.name,
-        price: p.price,
+        price: Number(p.price),
         currency: p.currency,
-        category: p.category,
-        model: p.model,
-        images: p.images || [],
-        shortDescription: p.shortDescription,
+        category: p.category || 'General',
+        model: p.asset_name || 'chair.glb',
+        images: [],
+        shortDescription: (p.description || '').slice(0, 160),
         reason: 'Trending product on Douche',
         score: 0,
       })),

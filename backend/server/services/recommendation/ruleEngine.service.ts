@@ -1,9 +1,10 @@
 import { getUserProfile, type ShoppingProfile } from './profile.service.js';
 import * as scoring from './scoring.service.js';
-import { getTrendingProducts } from '../../repositories/recommendation.repository.js';
-import { products, type Product } from '../../../../lib/mockData.js';
+import { type ScorableProduct } from './scoring.service.js';
+import { getCollaborativeCandidates, getTrendingProducts } from '../../repositories/recommendation.repository.js';
+import { listProducts, getRatingSummariesForProducts } from '../../../../lib/db/queries.js';
 
-export interface ScoredProduct extends Product {
+export interface ScoredProduct extends ScorableProduct {
   score: number;
   scoringBreakdown: {
     searchMatch: number;
@@ -15,24 +16,41 @@ export interface ScoredProduct extends Product {
     brandPreference: number;
     budgetMatch: number;
     trending: number;
+    collaborative: number;
   };
 }
 
+// Collaborative co-occurrence counts are unbounded and sparse on a small
+// dataset; cap the per-product boost so it nudges the content-based score
+// rather than dominating it while the dataset is thin.
+const MAX_COLLABORATIVE_BOOST = 25;
+const COLLABORATIVE_POINTS_PER_SIMILAR_USER = 5;
+
 export async function rankAndSelectCandidates(
   profile: ShoppingProfile,
-  userId: string | null
+  userId: string | null,
 ): Promise<ScoredProduct[]> {
-  // Get trending counts from PostgreSQL interactions
-  const trendingCounts = await getTrendingProducts(50).catch(() => []);
+  const catalog = await listProducts().catch(() => []);
+  if (catalog.length === 0) return [];
 
-  // Fetch recent cart product IDs from profile. Since profile can parse cart additions,
-  // we can also scan the interactions for recent 'cart_add' events.
-  // We'll extract active cart IDs from interactions in profile.
-  // Wait, let's assume we extract cartProductIds in profile or interaction query.
-  // Let's check: in profile.service.ts, we did not extract cartProductIds. Let's look at profile.service.ts:
-  // Oh, wait! We can easily check the latest interactions for 'cart_add' to find cartProductIds.
-  // Let's add that logic dynamically or infer it.
-  const cartProductIds: number[] = []; // Inferred cart items from interactions
+  const productIds = catalog.map((p) => p.id);
+
+  const [trendingCounts, ratingSummaries, collaborativeCandidates] = await Promise.all([
+    getTrendingProducts(50).catch(() => []),
+    getRatingSummariesForProducts(productIds).catch(() => new Map()),
+    userId ? getCollaborativeCandidates(userId, 50).catch(() => []) : Promise.resolve([]),
+  ]);
+
+  const collaborativeByProductId = new Map(
+    collaborativeCandidates.map((c) => [c.productId, c.coOccurrenceScore]),
+  );
+
+  const products: ScorableProduct[] = catalog.map((product) => ({
+    ...product,
+    rating: ratingSummaries.get(product.id)?.average ?? 0,
+  }));
+
+  const cartProductIds = profile.recentCartProductIds;
 
   const scored: ScoredProduct[] = products.map((product) => {
     const searchMatch = scoring.scoreSearchMatch(product, profile.recentSearches);
@@ -45,6 +63,9 @@ export async function rankAndSelectCandidates(
     const budgetMatch = scoring.scoreBudgetMatch(product, profile.preferredPriceRange, profile.averageSpending);
     const trending = scoring.scoreTrending(product, trendingCounts);
 
+    const rawCollaborative = (collaborativeByProductId.get(product.id) ?? 0) * COLLABORATIVE_POINTS_PER_SIMILAR_USER;
+    const collaborative = Math.min(rawCollaborative, MAX_COLLABORATIVE_BOOST);
+
     const totalScore =
       searchMatch +
       categoryMatch +
@@ -54,7 +75,8 @@ export async function rankAndSelectCandidates(
       cartMatch +
       brandPreference +
       budgetMatch +
-      trending;
+      trending +
+      collaborative;
 
     return {
       ...product,
@@ -69,6 +91,7 @@ export async function rankAndSelectCandidates(
         brandPreference,
         budgetMatch,
         trending,
+        collaborative,
       },
     };
   });

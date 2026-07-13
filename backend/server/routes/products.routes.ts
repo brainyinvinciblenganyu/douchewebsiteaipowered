@@ -92,6 +92,16 @@ function parsePrice(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function parseStock(value: unknown): number | undefined {
+  if (typeof value === 'undefined') return undefined;
+
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw === 'undefined') return undefined;
+
+  const n = Math.trunc(Number(String(raw)));
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const vendorUserId = firstString(req.query.vendor_user_id);
@@ -192,6 +202,7 @@ router.post('/', async (req: Request, res: Response) => {
             : String(payload.asset_data),
       asset_file,
       status: firstString(payload.status) ?? 'published',
+      stock_quantity: parseStock(payload.stock_quantity) ?? 0,
     });
 
     res.status(201).json({ product });
@@ -275,6 +286,7 @@ name:
         typeof payload.status === 'undefined'
           ? undefined
           : firstString(payload.status) ?? undefined,
+      stock_quantity: parseStock(payload.stock_quantity),
       asset_name:
         uploaded
           ? typeof payload.asset_name === 'undefined'

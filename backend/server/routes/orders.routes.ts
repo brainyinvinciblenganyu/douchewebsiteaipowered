@@ -43,11 +43,11 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json({ status: 'success', orderId: order.id, createdAt: order.createdAt });
   } catch (error) {
-    // Log more details about the error
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
+    res.status(500).json({ error: 'Failed to create order' });
   }
 });
 

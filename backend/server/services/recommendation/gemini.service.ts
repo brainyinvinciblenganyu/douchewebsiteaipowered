@@ -2,7 +2,7 @@ import { type ShoppingProfile } from './profile.service.js';
 import { type ScoredProduct } from './ruleEngine.service.js';
 
 export interface GeminiRecommendation {
-  id: number;
+  id: string;
   reason: string;
 }
 
@@ -23,7 +23,7 @@ export async function rankWithGemini(
     category: c.category,
     price: c.price,
     score: c.score,
-    shortDescription: c.shortDescription,
+    shortDescription: (c.description || '').slice(0, 160),
     tags: c.tags,
   }));
 
@@ -45,7 +45,7 @@ Instructions:
 {
   "recommendations": [
     {
-      "id": number (must match a product ID in the candidates),
+      "id": "string (must exactly match a product id from the candidates)",
       "reason": "explanation string"
     }
   ]

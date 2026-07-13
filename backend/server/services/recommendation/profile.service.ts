@@ -1,15 +1,21 @@
 import { getInteractions } from '../../repositories/recommendation.repository.js';
-import { products } from '../../../../lib/mockData.js';
+import { listProducts, type DbProduct } from '../../../../lib/db/queries.js';
 
 export interface ShoppingProfile {
   favoriteCategories: { category: string; count: number }[];
+  // NOTE: "brand" here is the vendor's user id (vendor_user_id) — real products
+  // don't have a separate brand field, vendor identity stands in for it.
   favoriteBrands: { brand: string; count: number }[];
   recentSearches: string[];
-  recentlyViewedProductIds: number[];
-  purchaseHistoryIds: number[];
+  recentlyViewedProductIds: string[];
+  purchaseHistoryIds: string[];
   averageSpending: number;
   preferredPriceRange: { min: number; max: number };
-  wishlistProductIds: number[];
+  wishlistProductIds: string[];
+  // Approximate "currently interested in buying" signal from recent cart_add
+  // events. The schema has no cart-removal event type, so this can't perfectly
+  // mirror the live cart — it's a recency-capped best-effort signal.
+  recentCartProductIds: string[];
   shoppingFrequency: 'frequent' | 'moderate' | 'rare' | 'new';
 }
 
@@ -23,6 +29,7 @@ export async function getUserProfile(userId: string | null): Promise<ShoppingPro
     averageSpending: 0,
     preferredPriceRange: { min: 0, max: 0 },
     wishlistProductIds: [],
+    recentCartProductIds: [],
     shoppingFrequency: 'new',
   };
 
@@ -31,26 +38,32 @@ export async function getUserProfile(userId: string | null): Promise<ShoppingPro
   const interactions = await getInteractions(userId, 200);
   if (!interactions.length) return defaultProfile;
 
+  const catalog = await listProducts().catch(() => [] as DbProduct[]);
+  const catalogById = new Map(catalog.map((p) => [p.id, p]));
+
   // Category counts
   const categoryCounts: Record<string, number> = {};
-  // Brand counts
+  // Brand (vendor) counts
   const brandCounts: Record<string, number> = {};
   // Unique sets/lists
   const recentSearches = new Set<string>();
-  const recentlyViewedProductIds = new Set<number>();
-  const purchaseHistoryIds = new Set<number>();
-  const wishlistProductIds = new Set<number>();
+  const recentlyViewedProductIds = new Set<string>();
+  const purchaseHistoryIds = new Set<string>();
+  const wishlistProductIds = new Set<string>();
+  const recentCartProductIds = new Set<string>();
 
   let totalPurchaseCents = 0;
   let purchaseCount = 0;
 
-  // Replay wishlist in chronological order (oldest to newest)
+  // Replay wishlist and recent cart adds in chronological order (oldest to newest)
   const chronological = [...interactions].reverse();
   for (const row of chronological) {
     if (row.event_type === 'wishlist_add' && row.product_id) {
       wishlistProductIds.add(row.product_id);
     } else if (row.event_type === 'wishlist_remove' && row.product_id) {
       wishlistProductIds.delete(row.product_id);
+    } else if (row.event_type === 'cart_add' && row.product_id) {
+      recentCartProductIds.add(row.product_id);
     }
   }
 
@@ -58,16 +71,16 @@ export async function getUserProfile(userId: string | null): Promise<ShoppingPro
   const interactedPrices: number[] = [];
 
   for (const row of interactions) {
-    // Categories and Brands can be derived from the product mockData if row.product_id is present
+    // Categories and vendor "brand" can be derived from the real catalog if row.product_id is present
     let category = row.category;
     let brand = row.brand;
 
     if (row.product_id) {
-      const prod = products.find((p) => p.id === row.product_id);
+      const prod = catalogById.get(row.product_id);
       if (prod) {
-        category = category || prod.category;
-        brand = brand || prod.vendorName;
-        interactedPrices.push(prod.price);
+        category = category || prod.category || null;
+        brand = brand || prod.vendor_user_id || null;
+        interactedPrices.push(Number(prod.price));
       }
     }
 
@@ -86,9 +99,9 @@ export async function getUserProfile(userId: string | null): Promise<ShoppingPro
     }
     if (row.event_type === 'purchase' && row.product_id) {
       purchaseHistoryIds.add(row.product_id);
-      const prod = products.find((p) => p.id === row.product_id);
+      const prod = catalogById.get(row.product_id);
       if (prod) {
-        totalPurchaseCents += prod.price * 100;
+        totalPurchaseCents += Number(prod.price) * 100;
         purchaseCount += 1;
       }
     }
@@ -145,6 +158,7 @@ export async function getUserProfile(userId: string | null): Promise<ShoppingPro
     averageSpending,
     preferredPriceRange,
     wishlistProductIds: Array.from(wishlistProductIds),
+    recentCartProductIds: Array.from(recentCartProductIds).slice(0, 20),
     shoppingFrequency,
   };
 }
