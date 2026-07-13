@@ -13,6 +13,7 @@ export type VendorDraft = {
   pricing: {
     currency: string;
     price: number;
+    stockQuantity: number;
   };
   previewVersions: Array<{
     versionId: string;

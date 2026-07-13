@@ -28,6 +28,7 @@ export type DbProduct = {
   // Stored in Postgres as `bytea`.
   asset_file: Buffer | null;
   status: string;
+  stock_quantity: number;
   created_at: string;
 };
 
@@ -76,6 +77,34 @@ export async function findUserById(id: string): Promise<DbUser | null> {
   return (res.rows[0] as DbUser | undefined) ?? null;
 }
 
+export async function createSessionRecord(
+  userId: string,
+  ttlSeconds: number,
+): Promise<{ id: string } | null> {
+  const pool = getPool();
+  try {
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+    const res = await pool.query(
+      `INSERT INTO sessions (user_id, expires_at) VALUES ($1, $2) RETURNING id`,
+      [userId, expiresAt],
+    );
+    const row = res.rows[0] as { id?: string } | undefined;
+    return row?.id ? { id: row.id } : null;
+  } catch (error) {
+    console.warn('createSessionRecord failed (non-fatal, login still succeeds):', error);
+    return null;
+  }
+}
+
+export async function revokeSessionRecord(sessionId: string): Promise<void> {
+  const pool = getPool();
+  try {
+    await pool.query(`UPDATE sessions SET revoked_at = now() WHERE id = $1`, [sessionId]);
+  } catch (error) {
+    console.warn('revokeSessionRecord failed (non-fatal):', error);
+  }
+}
+
 export async function createProduct(params: {
   name: string;
   description?: string | null;
@@ -90,12 +119,13 @@ export async function createProduct(params: {
   asset_data?: string | null;
   asset_file?: Buffer | null;
   status?: string;
+  stock_quantity?: number;
 }): Promise<DbProduct> {
   const pool = getPool();
   const res = await pool.query(
-    `INSERT INTO products (name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-     RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at`,
+    `INSERT INTO products (name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+     RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at`,
     [
       params.name?.trim() || 'Untitled product',
       params.description ?? null,
@@ -110,6 +140,7 @@ export async function createProduct(params: {
       params.asset_data ?? null,
       params.asset_file ?? null,
       params.status ?? 'published',
+      params.stock_quantity ?? 0,
     ],
   );
   return res.rows[0] as DbProduct;
@@ -122,9 +153,9 @@ export async function listProducts(options?: {
 
   const vendorUserId = options?.vendorUserId?.toString().trim() || null;
   const queryText = vendorUserId
-    ? `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+    ? `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
        FROM products WHERE vendor_user_id = $1 ORDER BY created_at DESC`
-    : `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+    : `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
        FROM products ORDER BY created_at DESC`;
 
   try {
@@ -152,6 +183,7 @@ export async function listProducts(options?: {
       asset_data: null,
       asset_file: null,
       status: 'published',
+      stock_quantity: 0,
       created_at: product.createdAt,
     }));
   }
@@ -184,7 +216,7 @@ export async function getProductByIdForVendor(
   const pool = getPool();
   try {
     const res = await pool.query(
-      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
        FROM products
        WHERE id = $1 AND vendor_user_id = $2
        LIMIT 1`,
@@ -212,6 +244,7 @@ export async function updateProduct(
     asset_size?: number | null;
     asset_data?: string | null;
     asset_file?: Buffer | null;
+    stock_quantity?: number;
   },
 ): Promise<DbProduct | null> {
   const pool = getPool();
@@ -234,6 +267,7 @@ export async function updateProduct(
   pushIfDefined('asset_size', patch.asset_size);
   pushIfDefined('asset_data', patch.asset_data);
   pushIfDefined('asset_file', patch.asset_file);
+  pushIfDefined('stock_quantity', patch.stock_quantity);
 
   if (fields.length === 0) {
     return getProductByIdForVendor(productId, vendorUserId);
@@ -247,7 +281,7 @@ export async function updateProduct(
         .join(', ')}
     WHERE id = $1
       AND vendor_user_id = $2
-    RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+    RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
   `;
 
   const values = [productId, vendorUserId, ...fields.map((f) => f.value)];
@@ -263,7 +297,7 @@ export async function getProductById(id: string): Promise<DbProduct | null> {
   const pool = getPool();
   try {
     const res = await pool.query(
-      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, created_at
+      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
        FROM products WHERE id = $1 LIMIT 1`,
       [id],
     );
@@ -429,6 +463,27 @@ export async function getRatingSummary(productId: string): Promise<RatingSummary
     count: Number(row?.count ?? 0),
     average: Number(row?.average ?? 0),
   };
+}
+
+export async function getRatingSummariesForProducts(
+  productIds: string[],
+): Promise<Map<string, RatingSummary>> {
+  const map = new Map<string, RatingSummary>();
+  if (productIds.length === 0) return map;
+
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT product_id, COUNT(*)::int AS count, COALESCE(AVG(rating), 0)::float AS average
+     FROM product_reviews
+     WHERE product_id = ANY($1::uuid[])
+     GROUP BY product_id`,
+    [productIds],
+  );
+
+  for (const row of res.rows as Array<{ product_id: string; count: number; average: number }>) {
+    map.set(String(row.product_id), { count: Number(row.count), average: Number(row.average) });
+  }
+  return map;
 }
 
 export async function getReviewsForProduct(productId: string): Promise<DbProductReview[]> {

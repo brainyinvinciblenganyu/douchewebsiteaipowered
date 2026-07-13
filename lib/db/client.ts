@@ -52,7 +52,7 @@ class InMemoryPool implements DbPoolLike {
     }
 
     if (normalized.includes('insert into products')) {
-      const [name, description, category, tags, price, currency, vendorUserId, assetName, assetType, assetSize, assetData, assetFile, status] = params as [string, string | null, string | null, string[] | null, number, string, string | null, string | null, string | null, number | null, string | null, string | null, string | null];
+      const [name, description, category, tags, price, currency, vendorUserId, assetName, assetType, assetSize, assetData, assetFile, status, stockQuantity] = params as [string, string | null, string | null, string[] | null, number, string, string | null, string | null, string | null, number | null, string | null, string | null, string | null, number | null];
       const product = {
         id: `product-${this.products.length + 1}`,
         name,
@@ -68,6 +68,7 @@ class InMemoryPool implements DbPoolLike {
         asset_data: assetData,
         asset_file: assetFile,
         status: status ?? 'published',
+        stock_quantity: stockQuantity ?? 0,
         created_at: new Date().toISOString(),
       };
       this.products.push(product);

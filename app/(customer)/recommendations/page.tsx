@@ -7,7 +7,7 @@ import RequireAuth from '../../../components/RequireAuth';
 import { motion } from 'framer-motion';
 
 interface RecommendationItem {
-  id: number;
+  id: string;
   name: string;
   price: number;
   currency: string;

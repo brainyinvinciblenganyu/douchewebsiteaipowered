@@ -3,10 +3,10 @@
  */
 export async function trackEvent(params: {
   eventType: 'view' | 'cart_add' | 'wishlist_add' | 'wishlist_remove' | 'rate' | 'search' | 'purchase';
-  productId?: number;
+  productId?: string;
   query?: string;
-  category?: string;
-  brand?: string;
+  category?: string | null;
+  brand?: string | null;
   rating?: number;
   metadata?: Record<string, unknown>;
 }) {

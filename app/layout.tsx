@@ -5,6 +5,7 @@ import "./globals.css";
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import TabIndicator from '../components/TabIndicator';
+import Brainy from '../components/Brainy';
 
 const fontVariables = {
   '--font-sans': 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -30,7 +31,7 @@ export default function RootLayout({
           <TabIndicator />
           <main className="main-content">{children}</main>
           <Footer />
-
+          <Brainy />
         </AuthProvider>
       </body>
     </html>

@@ -16,6 +16,7 @@ type ProductCard = {
   tags?: string[];
   price?: number;
   currency?: string;
+  stock_quantity?: number;
   asset_name?: string | null;
   asset_type?: string | null;
   asset_file?: string | null;
@@ -78,6 +79,7 @@ export default function ProductEditClient() {
           ),
           price: Number((found as any).price ?? 0),
           currency: String((found as any).currency ?? 'FCFA'),
+          stock_quantity: Number((found as any).stock_quantity ?? 0),
         });
       } catch (e) {
         if (!mounted) return;
@@ -187,9 +189,15 @@ export default function ProductEditClient() {
                       <p className="mt-3 text-sm leading-7 text-blue-100/90">No description.</p>
                     )}
 
-                    <div className="mt-6 text-sm text-blue-100">
-                      <p className="text-xs uppercase tracking-[0.22em] text-blue-200">Price</p>
-                      <p className="mt-2 text-2xl font-semibold">{product.currency ?? 'FCFA'} {Number(product.price ?? 0).toLocaleString()}</p>
+                    <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-blue-100">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.22em] text-blue-200">Price</p>
+                        <p className="mt-2 text-2xl font-semibold">{product.currency ?? 'FCFA'} {Number(product.price ?? 0).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.22em] text-blue-200">Stock</p>
+                        <p className="mt-2 text-2xl font-semibold">{Number(product.stock_quantity ?? 0)}</p>
+                      </div>
                     </div>
 
                     <div className="mt-8 grid gap-3">

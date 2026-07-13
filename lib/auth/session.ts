@@ -4,6 +4,7 @@ const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'session';
 
 type SessionPayload = {
   userId: string;
+  sessionId?: string;
 };
 
 type CookieResponseLike = {

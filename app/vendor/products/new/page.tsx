@@ -13,6 +13,7 @@ import { ArrowLeft, CheckCircle2, ChevronRight, Plus, RotateCcw, UploadCloud, Lo
 type DraftPricing = {
   currency: string;
   price: number;
+  stockQuantity: number;
 };
 
 const STORAGE_KEYS = {
@@ -66,7 +67,7 @@ export default function NewVendorProductPage() {
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string>('');
 
-  const [pricing, setPricing] = useState<DraftPricing>({ currency: 'FCFA', price: 15000 });
+  const [pricing, setPricing] = useState<DraftPricing>({ currency: 'FCFA', price: 15000, stockQuantity: 10 });
 
   // Prefill when coming from the edit page.
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -123,7 +124,7 @@ export default function NewVendorProductPage() {
       updatedAt: new Date().toISOString(),
       isPublished: false,
       metadata: { name: '', category: 'Furniture', description: '', tags: [] },
-      pricing: { currency: 'FCFA', price: 15000 },
+      pricing: { currency: 'FCFA', price: 15000, stockQuantity: 10 },
       previewVersions: [],
       activeVersionId: '',
     };
@@ -165,6 +166,7 @@ export default function NewVendorProductPage() {
         setPricing({
           currency: found.currency ? String(found.currency) : 'FCFA',
           price: Number(found.price ?? 0),
+          stockQuantity: Number(found.stock_quantity ?? 0),
         });
 
         // Stage metadata only (no file bytes). User can upload a new 3D file if desired.
@@ -326,6 +328,7 @@ export default function NewVendorProductPage() {
 
       form.append('price', String(pricing.price));
       form.append('currency', pricing.currency);
+      form.append('stock_quantity', String(pricing.stockQuantity));
       form.append('vendor_user_id', vendorUserId);
 
       if (!stagedAssetName) {
@@ -562,6 +565,17 @@ export default function NewVendorProductPage() {
                         className="w-full rounded-xl border border-blue-300/50 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
                       />
                     </label>
+
+                    <label className="space-y-2">
+                      <span className="text-sm font-semibold text-blue-100">Stock quantity</span>
+                      <input
+                        type="number"
+                        value={pricing.stockQuantity}
+                        min={0}
+                        onChange={(e) => setPricing((p) => ({ ...p, stockQuantity: Math.max(0, Number(e.target.value || 0)) }))}
+                        className="w-full rounded-xl border border-blue-300/50 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:ring-2 focus:ring-white/50"
+                      />
+                    </label>
                   </div>
 
                   <div className="mt-6 flex gap-3">
@@ -589,6 +603,12 @@ export default function NewVendorProductPage() {
                     <p className="text-xs uppercase tracking-[0.24em] text-blue-600">Price</p>
                     <p className="mt-2 text-lg font-semibold text-blue-900">
                       {formatPrice(pricing.currency, pricing.price)}
+                    </p>
+                  </div>
+                  <div className="mt-4 rounded-3xl border border-blue-200/50 bg-white/80 p-4">
+                    <p className="text-xs uppercase tracking-[0.24em] text-blue-600">Stock</p>
+                    <p className="mt-2 text-lg font-semibold text-blue-900">
+                      {pricing.stockQuantity} unit{pricing.stockQuantity === 1 ? '' : 's'}
                     </p>
                   </div>
                   <p className="mt-4 text-sm text-blue-700">
@@ -769,6 +789,12 @@ export default function NewVendorProductPage() {
                       <p className="text-xs uppercase tracking-[0.24em] text-blue-200">Price</p>
                       <p className="mt-2 text-sm font-semibold text-white">
                         {formatPrice(pricing.currency, pricing.price)}
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-blue-300/50 bg-blue-500/30 p-4">
+                      <p className="text-xs uppercase tracking-[0.24em] text-blue-200">Stock</p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {pricing.stockQuantity} unit{pricing.stockQuantity === 1 ? '' : 's'}
                       </p>
                     </div>
                   </div>

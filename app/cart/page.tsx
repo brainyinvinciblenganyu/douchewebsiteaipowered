@@ -20,6 +20,7 @@ interface CartItem {
   price: number;
   model: string;
   quantity: number;
+  category?: string | null;
 }
 
 const backgroundImages = [
@@ -115,15 +116,20 @@ function CartPageContent() {
         });
 
         if (!res.ok) return;
-        const data = (await res.json()) as { items?: Array<{ id: number; name: string; price: number; asset_name?: string | null; model?: string | null }> };
+        const data = (await res.json()) as { items?: Array<{ id: number; name: string; price: number; category?: string | null; asset_name?: string | null; model?: string | null }> };
         const items = Array.isArray(data.items) ? data.items : [];
 
         if (!alive) return;
 
-        const map = new Map<string, { name: string; price: number; model: string }>();
+        const map = new Map<string, { name: string; price: number; model: string; category: string | null }>();
         for (const p of items) {
           const model = (p.asset_name ? String(p.asset_name) : (p.model ? String(p.model) : 'chair.glb'));
-          map.set(String(p.id), { name: String(p.name ?? ''), price: Number(p.price ?? 0), model });
+          map.set(String(p.id), {
+            name: String(p.name ?? ''),
+            price: Number(p.price ?? 0),
+            model,
+            category: typeof p.category === 'string' ? p.category : null,
+          });
         }
 
         setCartItems((prev) =>
@@ -135,6 +141,7 @@ function CartPageContent() {
                   name: live.name || ci.name,
                   price: Number.isFinite(live.price) ? live.price : ci.price,
                   model: live.model || ci.model,
+                  category: live.category ?? ci.category ?? null,
                 }
               : ci;
           }),
@@ -301,23 +308,33 @@ function CartPageContent() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-6">
                   {cartItems.map((item, index) => (
-                <div key={String(item.id ?? `cart-${index}`)} className="bg-white p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6">
+                <div key={String(item.id ?? `cart-${index}`)} className="rounded-[28px] bg-white p-6 shadow-md border border-gray-100 flex flex-col md:flex-row gap-8">
 
                   {/* Product 3D Preview */}
-                  <div className="w-full md:w-48 h-48 flex-shrink-0 bg-[#f5f5f5] relative overflow-hidden">
+                  <Link
+                    href={`/product/${item.id}`}
+                    className="w-full md:w-64 h-64 flex-shrink-0 rounded-2xl bg-[#f5f5f5] relative overflow-hidden block"
+                  >
                     <ModelViewer modelUrl={item.model ? `/models/${item.model}` : '/models/chair.glb'} />
-                  </div>
+                  </Link>
 
 
                   {/* Product Details */}
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">{item.name}</h3>
-                      <p className="text-gray-500 text-sm mb-2">3D Model</p>
-                      <p className="text-2xl font-bold text-black flex items-start mb-4">
-                        <span className="text-xs font-normal mt-1 mr-1">FCFA</span>
+                      {item.category && (
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0058a3] mb-2">
+                          {item.category}
+                        </p>
+                      )}
+                      <Link href={`/product/${item.id}`} className="block">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-1 hover:text-[#0058a3] transition">{item.name}</h3>
+                      </Link>
+                      <p className="text-gray-500 text-sm mb-3">3D Model &middot; Interactive preview available</p>
+                      <p className="text-3xl font-bold text-black flex items-start mb-4">
+                        <span className="text-sm font-normal mt-1.5 mr-1.5">FCFA</span>
                         {item.price.toLocaleString()}
                       </p>
                     </div>
@@ -327,7 +344,7 @@ function CartPageContent() {
                       <div className="flex items-center gap-3">
                         <button
 onClick={() => updateQuantity(item.id, -1)}
-                          className="bg-[#0058a3] text-white hover:bg-[#0058a3] p-2 rounded-lg transition shadow-sm"
+                          className="bg-[#0058a3] text-white hover:bg-[#0058a3] p-2.5 rounded-xl transition shadow-sm"
                         >
                           <Minus size={18} />
                           <span className="sr-only">Decrease quantity</span>
@@ -335,7 +352,7 @@ onClick={() => updateQuantity(item.id, -1)}
                         <span className="text-lg font-bold w-8 text-center text-[#0058a3]">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.id, 1)}
-                          className="bg-[#0058a3] text-white hover:bg-blue-700 p-2 rounded-lg transition shadow-sm"
+                          className="bg-[#0058a3] text-white hover:bg-blue-700 p-2.5 rounded-xl transition shadow-sm"
                         >
                           <Plus size={18} />
                           <span className="sr-only">Increase quantity</span>
@@ -345,7 +362,7 @@ onClick={() => updateQuantity(item.id, -1)}
                       {/* Remove Button */}
                       <button
                         onClick={() => removeItem(item.id)}
-                        className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition"
+                        className="text-red-500 hover:text-red-700 p-2.5 hover:bg-red-50 rounded-xl transition"
                       >
                         <Trash2 size={20} />
                         <span className="sr-only">Remove item</span>
@@ -354,8 +371,9 @@ onClick={() => updateQuantity(item.id, -1)}
                   </div>
 
                   {/* Item Total */}
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-gray-800">
+                  <div className="text-right md:min-w-[140px]">
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-1">Subtotal</p>
+                    <p className="text-2xl font-bold text-gray-800">
                       FCFA {(item.price * item.quantity).toLocaleString()}
                     </p>
                   </div>
