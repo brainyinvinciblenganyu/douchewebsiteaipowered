@@ -39,11 +39,11 @@ export default function Home() {
               </div>
 
               <div className="flex flex-wrap gap-4">
-                <Link href="/products" className="inline-flex items-center rounded-2xl bg-white px-6 py-4 text-sm font-semibold text-[#0058a3] transition hover:-translate-y-[1px] hover:shadow-lg">
+                <Link href="/products" className="inline-flex items-center rounded-2xl bg-[#0058a3] px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-[1px] hover:opacity-90">
                   Browse catalog
                   <ArrowRight size={18} className="ml-2" />
                 </Link>
-                <Link href="/vendor/dashboard" className="inline-flex items-center rounded-2xl border-2 border-white px-6 py-4 text-sm font-semibold text-white transition hover:-translate-y-[1px] hover:bg-white hover:text-[#0058a3]">
+                <Link href="/vendor/dashboard" className="inline-flex items-center rounded-2xl bg-[#0058a3] px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-[1px] hover:opacity-90">
                   Explore vendor tools
                 </Link>
               </div>
@@ -146,7 +146,7 @@ export default function Home() {
               <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Trusted merchants</p>
               <h2 className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">Vendors shaping the AI commerce experience.</h2>
             </div>
-            <Link href="/vendor/dashboard" className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
+            <Link href="/vendor/dashboard" className="inline-flex items-center gap-2 rounded-2xl bg-[#0058a3] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:opacity-90">
               View vendor tools
             </Link>
           </div>

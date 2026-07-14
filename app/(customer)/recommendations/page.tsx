@@ -82,7 +82,7 @@ export default function RecommendationsPage() {
 
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-[#0058a3] transition-all hover:-translate-y-[1px] hover:shadow-lg"
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#0058a3] px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-[1px] hover:opacity-90"
               >
                 Browse Full Catalog
                 <ArrowRight size={18} />
@@ -206,7 +206,7 @@ export default function RecommendationsPage() {
 
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2 rounded-2xl bg-white text-slate-950 px-6 py-3.5 text-sm font-semibold transition hover:bg-slate-100 hover:shadow-lg"
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#0058a3] text-white px-6 py-3.5 text-sm font-bold shadow-sm transition hover:opacity-90 hover:shadow-lg"
               >
                 Start Exploring
                 <ArrowRight size={18} />

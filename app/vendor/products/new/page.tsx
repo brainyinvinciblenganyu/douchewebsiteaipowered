@@ -852,7 +852,7 @@ export default function NewVendorProductPage() {
                   <div className="mt-6">
                     <Link
                       href="/vendor/products"
-                      className="block w-full rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold text-blue-900 border border-blue-300/50 hover:bg-blue-50 transition"
+                      className="block w-full rounded-2xl bg-[#0058a3] px-4 py-3 text-center text-sm font-bold text-white shadow-sm hover:opacity-90 transition"
                     >
                       Go to vendor products
                     </Link>

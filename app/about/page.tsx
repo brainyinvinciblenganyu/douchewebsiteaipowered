@@ -280,7 +280,7 @@ export default function AboutPage() {
                     <Link
                       href="/products"
                       onClick={requireLoginForShop}
-                      className="inline-flex items-center rounded-2xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0058a3] transition hover:-translate-y-[1px] hover:shadow-lg"
+                      className="inline-flex items-center rounded-2xl bg-[#0058a3] px-6 py-3.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-[1px] hover:opacity-90"
                     >
                       Shop Now <ArrowRight size={18} className="ml-2" />
                     </Link>
@@ -686,7 +686,7 @@ export default function AboutPage() {
                   <Link
                     href="/products"
                     onClick={requireLoginForShop}
-                    className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0058a3] transition hover:-translate-y-[1px] hover:shadow-lg"
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#0058a3] px-6 py-3.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-[1px] hover:opacity-90"
                   >
                     Shop Collection
                   </Link>
