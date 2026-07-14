@@ -5,10 +5,14 @@ export type DbUser = {
   id: string;
   email: string;
   password_hash: string;
-  role: 'customer' | 'vendor';
+  role: 'customer' | 'vendor' | 'admin';
   name: string | null;
   company_name: string | null;
   location: string | null;
+  is_active: boolean;
+  totp_secret: string | null;
+  totp_enabled: boolean;
+  totp_recovery_codes: string[] | null;
   created_at: string;
 };
 
@@ -32,11 +36,12 @@ export type DbProduct = {
   created_at: string;
 };
 
+const USER_COLUMNS = 'id, email, password_hash, role, name, company_name, location, is_active, totp_secret, totp_enabled, totp_recovery_codes, created_at';
+
 export async function findUserByEmail(email: string): Promise<DbUser | null> {
   const pool = getPool();
   const res = await pool.query(
-    `SELECT id, email, password_hash, role, name, company_name, location, created_at
-     FROM users WHERE email = $1 LIMIT 1`,
+    `SELECT ${USER_COLUMNS} FROM users WHERE email = $1 LIMIT 1`,
     [email],
   );
   return (res.rows[0] as DbUser | undefined) ?? null;
@@ -45,7 +50,7 @@ export async function findUserByEmail(email: string): Promise<DbUser | null> {
 export async function createUser(params: {
   email: string;
   password_hash: string;
-  role: 'customer' | 'vendor';
+  role: 'customer' | 'vendor' | 'admin';
   name?: string | null;
   company_name?: string | null;
   location?: string | null;
@@ -54,7 +59,7 @@ export async function createUser(params: {
   const res = await pool.query(
     `INSERT INTO users (email, password_hash, role, name, company_name, location)
      VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING id, email, password_hash, role, name, company_name, location, created_at`,
+     RETURNING ${USER_COLUMNS}`,
     [
       params.email,
       params.password_hash,
@@ -70,8 +75,7 @@ export async function createUser(params: {
 export async function findUserById(id: string): Promise<DbUser | null> {
   const pool = getPool();
   const res = await pool.query(
-    `SELECT id, email, password_hash, role, name, company_name, location, created_at
-     FROM users WHERE id = $1 LIMIT 1`,
+    `SELECT ${USER_COLUMNS} FROM users WHERE id = $1 LIMIT 1`,
     [id],
   );
   return (res.rows[0] as DbUser | undefined) ?? null;
@@ -139,7 +143,7 @@ export async function createProduct(params: {
       params.asset_size ?? null,
       params.asset_data ?? null,
       params.asset_file ?? null,
-      params.status ?? 'published',
+      params.status ?? 'pending_review',
       params.stock_quantity ?? 0,
     ],
   );
@@ -152,11 +156,14 @@ export async function listProducts(options?: {
   const pool = getPool();
 
   const vendorUserId = options?.vendorUserId?.toString().trim() || null;
+  // The public/customer-facing path (no vendorUserId) only ever shows approved
+  // products. A vendor viewing their own catalog sees every status (draft,
+  // pending_review, published, archived) so they can track their submissions.
   const queryText = vendorUserId
     ? `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
        FROM products WHERE vendor_user_id = $1 ORDER BY created_at DESC`
     : `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
-       FROM products ORDER BY created_at DESC`;
+       FROM products WHERE status = 'published' ORDER BY created_at DESC`;
 
   try {
     const res = await pool.query(queryText, vendorUserId ? [vendorUserId] : []);
@@ -434,6 +441,20 @@ export async function getOrdersForCustomer(userId: string): Promise<DbOrder[]> {
   return groupOrderRows(res.rows as Array<Record<string, unknown>>);
 }
 
+// Customers can only drop their own order, and only while it's still pending
+// (nothing to "cancel" once a vendor has already started fulfilling it).
+export async function cancelOrderForCustomer(orderId: string, userId: string): Promise<boolean> {
+  const pool = getPool();
+  const res = await pool.query(
+    `UPDATE orders
+     SET status = 'cancelled'
+     WHERE id = $1 AND user_id = $2 AND status = 'pending'
+     RETURNING id`,
+    [orderId, userId],
+  );
+  return (res.rows?.length ?? 0) > 0;
+}
+
 export type DbProductReview = {
   id: string;
   productId: string;
@@ -538,5 +559,398 @@ export async function upsertReview(params: {
     body: (row.body as string | null) ?? null,
     createdAt: String(row.created_at),
   };
+}
+
+export type DbEmailMessage = {
+  id: string;
+  contactEmail: string;
+  contactName: string | null;
+  direction: 'inbound' | 'outbound';
+  subject: string | null;
+  bodyText: string | null;
+  bodyHtml: string | null;
+  messageId: string | null;
+  source: 'imap' | 'contact_form' | 'admin_reply';
+  isRead: boolean;
+  createdAt: string;
+};
+
+export type EmailConversationSummary = {
+  contactEmail: string;
+  contactName: string | null;
+  lastSubject: string | null;
+  lastPreview: string | null;
+  lastDirection: 'inbound' | 'outbound';
+  lastCreatedAt: string;
+  unreadCount: number;
+};
+
+function mapEmailMessageRow(row: Record<string, unknown>): DbEmailMessage {
+  return {
+    id: String(row.id),
+    contactEmail: String(row.contact_email),
+    contactName: (row.contact_name as string | null) ?? null,
+    direction: row.direction as 'inbound' | 'outbound',
+    subject: (row.subject as string | null) ?? null,
+    bodyText: (row.body_text as string | null) ?? null,
+    bodyHtml: (row.body_html as string | null) ?? null,
+    messageId: (row.message_id as string | null) ?? null,
+    source: row.source as 'imap' | 'contact_form' | 'admin_reply',
+    isRead: Boolean(row.is_read),
+    createdAt: String(row.created_at),
+  };
+}
+
+export async function listEmailConversations(): Promise<EmailConversationSummary[]> {
+  const pool = getPool();
+
+  const latest = await pool.query(
+    `SELECT DISTINCT ON (contact_email) contact_email, contact_name, subject, body_text, direction, created_at
+     FROM email_messages
+     ORDER BY contact_email, created_at DESC`,
+  );
+
+  const unread = await pool.query(
+    `SELECT contact_email, COUNT(*)::int AS unread_count
+     FROM email_messages
+     WHERE direction = 'inbound' AND is_read = false
+     GROUP BY contact_email`,
+  );
+
+  const unreadByEmail = new Map<string, number>();
+  for (const row of unread.rows as Array<{ contact_email: string; unread_count: number }>) {
+    unreadByEmail.set(row.contact_email, Number(row.unread_count));
+  }
+
+  const conversations = (latest.rows as Array<Record<string, unknown>>).map((row) => ({
+    contactEmail: String(row.contact_email),
+    contactName: (row.contact_name as string | null) ?? null,
+    lastSubject: (row.subject as string | null) ?? null,
+    lastPreview: (row.body_text as string | null) ?? null,
+    lastDirection: row.direction as 'inbound' | 'outbound',
+    lastCreatedAt: String(row.created_at),
+    unreadCount: unreadByEmail.get(String(row.contact_email)) ?? 0,
+  }));
+
+  conversations.sort((a, b) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : -1));
+  return conversations;
+}
+
+export async function getEmailThread(contactEmail: string): Promise<DbEmailMessage[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT id, contact_email, contact_name, direction, subject, body_text, body_html, message_id, source, is_read, created_at
+     FROM email_messages
+     WHERE contact_email = $1
+     ORDER BY created_at ASC`,
+    [contactEmail],
+  );
+  return (res.rows as Array<Record<string, unknown>>).map(mapEmailMessageRow);
+}
+
+export async function insertEmailMessage(params: {
+  contactEmail: string;
+  contactName?: string | null;
+  direction: 'inbound' | 'outbound';
+  subject?: string | null;
+  bodyText?: string | null;
+  bodyHtml?: string | null;
+  messageId?: string | null;
+  source: 'imap' | 'contact_form' | 'admin_reply';
+  isRead?: boolean;
+}): Promise<DbEmailMessage> {
+  const pool = getPool();
+  const res = await pool.query(
+    `INSERT INTO email_messages (contact_email, contact_name, direction, subject, body_text, body_html, message_id, source, is_read)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, contact_email, contact_name, direction, subject, body_text, body_html, message_id, source, is_read, created_at`,
+    [
+      params.contactEmail.trim().toLowerCase(),
+      params.contactName ?? null,
+      params.direction,
+      params.subject ?? null,
+      params.bodyText ?? null,
+      params.bodyHtml ?? null,
+      params.messageId ?? null,
+      params.source,
+      params.isRead ?? params.direction === 'outbound',
+    ],
+  );
+  return mapEmailMessageRow(res.rows[0] as Record<string, unknown>);
+}
+
+export async function emailMessageExistsByMessageId(messageId: string): Promise<boolean> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT 1 FROM email_messages WHERE message_id = $1 LIMIT 1`,
+    [messageId],
+  );
+  return (res.rows?.length ?? 0) > 0;
+}
+
+export async function markEmailThreadRead(contactEmail: string): Promise<void> {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE email_messages SET is_read = true WHERE contact_email = $1 AND direction = 'inbound' AND is_read = false`,
+    [contactEmail.trim().toLowerCase()],
+  );
+}
+
+// ---- Admin panel ----
+
+export type VendorSummary = {
+  id: string;
+  email: string;
+  name: string | null;
+  companyName: string | null;
+  location: string | null;
+  isActive: boolean;
+  productCount: number;
+  createdAt: string;
+};
+
+export async function listVendors(): Promise<VendorSummary[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT u.id, u.email, u.name, u.company_name, u.location, u.is_active, u.created_at,
+            COUNT(p.id)::int AS product_count
+     FROM users u
+     LEFT JOIN products p ON p.vendor_user_id = u.id
+     WHERE u.role = 'vendor'
+     GROUP BY u.id
+     ORDER BY u.created_at DESC`,
+  );
+
+  return (res.rows as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id),
+    email: String(row.email),
+    name: (row.name as string | null) ?? null,
+    companyName: (row.company_name as string | null) ?? null,
+    location: (row.location as string | null) ?? null,
+    isActive: Boolean(row.is_active),
+    productCount: Number(row.product_count ?? 0),
+    createdAt: String(row.created_at),
+  }));
+}
+
+export async function setVendorActive(vendorId: string, isActive: boolean): Promise<boolean> {
+  const pool = getPool();
+  const res = await pool.query(
+    `UPDATE users SET is_active = $2 WHERE id = $1 AND role = 'vendor' RETURNING id`,
+    [vendorId, isActive],
+  );
+  return (res.rows?.length ?? 0) > 0;
+}
+
+export type PendingProduct = {
+  id: string;
+  name: string;
+  category: string | null;
+  price: number;
+  currency: string;
+  vendorUserId: string | null;
+  vendorName: string | null;
+  vendorEmail: string | null;
+  createdAt: string;
+};
+
+export async function listPendingProducts(): Promise<PendingProduct[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT p.id, p.name, p.category, p.price, p.currency, p.vendor_user_id, p.created_at,
+            u.name AS vendor_name, u.email AS vendor_email
+     FROM products p
+     LEFT JOIN users u ON u.id = p.vendor_user_id
+     WHERE p.status = 'pending_review'
+     ORDER BY p.created_at ASC`,
+  );
+
+  return (res.rows as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    category: (row.category as string | null) ?? null,
+    price: Number(row.price ?? 0),
+    currency: String(row.currency ?? 'FCFA'),
+    vendorUserId: row.vendor_user_id != null ? String(row.vendor_user_id) : null,
+    vendorName: (row.vendor_name as string | null) ?? null,
+    vendorEmail: (row.vendor_email as string | null) ?? null,
+    createdAt: String(row.created_at),
+  }));
+}
+
+export async function setProductStatus(
+  productId: string,
+  status: 'published' | 'archived',
+): Promise<DbProduct | null> {
+  const pool = getPool();
+  const res = await pool.query(
+    `UPDATE products SET status = $2
+     WHERE id = $1
+     RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at`,
+    [productId, status],
+  );
+  return (res.rows[0] as DbProduct | undefined) ?? null;
+}
+
+export type AdminTransaction = {
+  id: string;
+  customerId: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  totalAmount: number;
+  currency: string;
+  status: string;
+  itemCount: number;
+  createdAt: string;
+};
+
+export async function listAllTransactions(): Promise<AdminTransaction[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT o.id, o.user_id AS customer_id, o.total_amount, o.currency, o.status, o.created_at,
+            u.name AS customer_name, u.email AS customer_email,
+            COUNT(oi.id)::int AS item_count
+     FROM orders o
+     LEFT JOIN users u ON u.id = o.user_id
+     LEFT JOIN order_items oi ON oi.order_id = o.id
+     GROUP BY o.id, u.name, u.email
+     ORDER BY o.created_at DESC`,
+  );
+
+  return (res.rows as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id),
+    customerId: row.customer_id != null ? String(row.customer_id) : null,
+    customerName: (row.customer_name as string | null) ?? null,
+    customerEmail: (row.customer_email as string | null) ?? null,
+    totalAmount: Number(row.total_amount ?? 0),
+    currency: String(row.currency ?? 'FCFA'),
+    status: String(row.status ?? 'pending'),
+    itemCount: Number(row.item_count ?? 0),
+    createdAt: String(row.created_at),
+  }));
+}
+
+// ---- Admin auth hardening: rate limiting, audit log, TOTP ----
+
+export async function recordAdminLoginAttempt(params: {
+  identifier: string;
+  ip: string | null;
+  succeeded: boolean;
+}): Promise<void> {
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO admin_login_attempts (identifier, ip, succeeded) VALUES ($1, $2, $3)`,
+    [params.identifier.trim().toLowerCase(), params.ip, params.succeeded],
+  );
+}
+
+export async function countRecentFailedAttempts(params: {
+  identifier: string;
+  ip: string | null;
+  windowMinutes: number;
+}): Promise<{ byIdentifier: number; byIp: number }> {
+  const pool = getPool();
+  const identifier = params.identifier.trim().toLowerCase();
+
+  const byIdentifierRes = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM admin_login_attempts
+     WHERE identifier = $1 AND succeeded = false AND created_at > now() - ($2 || ' minutes')::interval`,
+    [identifier, params.windowMinutes],
+  );
+
+  const byIpRes = params.ip
+    ? await pool.query(
+        `SELECT COUNT(*)::int AS count FROM admin_login_attempts
+         WHERE ip = $1 AND succeeded = false AND created_at > now() - ($2 || ' minutes')::interval`,
+        [params.ip, params.windowMinutes],
+      )
+    : null;
+
+  return {
+    byIdentifier: Number((byIdentifierRes.rows[0] as { count?: number } | undefined)?.count ?? 0),
+    byIp: Number((byIpRes?.rows[0] as { count?: number } | undefined)?.count ?? 0),
+  };
+}
+
+export async function enableTotp(params: {
+  userId: string;
+  secret: string;
+  recoveryCodes: string[];
+}): Promise<void> {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE users SET totp_secret = $2, totp_enabled = true, totp_recovery_codes = $3 WHERE id = $1`,
+    [params.userId, params.secret, params.recoveryCodes],
+  );
+}
+
+export async function consumeRecoveryCode(userId: string, hashedCode: string): Promise<boolean> {
+  const pool = getPool();
+  const res = await pool.query(
+    `UPDATE users SET totp_recovery_codes = array_remove(totp_recovery_codes, $2)
+     WHERE id = $1 AND totp_recovery_codes @> ARRAY[$2]::text[]
+     RETURNING id`,
+    [userId, hashedCode],
+  );
+  return (res.rows?.length ?? 0) > 0;
+}
+
+export type AuditLogEntry = {
+  id: string;
+  adminId: string | null;
+  adminEmail: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown>;
+  ip: string | null;
+  createdAt: string;
+};
+
+export async function recordAuditLog(params: {
+  adminId: string;
+  action: string;
+  targetType?: string | null;
+  targetId?: string | null;
+  metadata?: Record<string, unknown>;
+  ip?: string | null;
+}): Promise<void> {
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO admin_audit_log (admin_id, action, target_type, target_id, metadata, ip)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      params.adminId,
+      params.action,
+      params.targetType ?? null,
+      params.targetId ?? null,
+      JSON.stringify(params.metadata ?? {}),
+      params.ip ?? null,
+    ],
+  );
+}
+
+export async function listAuditLog(limit = 200): Promise<AuditLogEntry[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT a.id, a.admin_id, u.email AS admin_email, a.action, a.target_type, a.target_id, a.metadata, a.ip, a.created_at
+     FROM admin_audit_log a
+     LEFT JOIN users u ON u.id = a.admin_id
+     ORDER BY a.created_at DESC
+     LIMIT $1`,
+    [limit],
+  );
+
+  return (res.rows as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id),
+    adminId: row.admin_id != null ? String(row.admin_id) : null,
+    adminEmail: (row.admin_email as string | null) ?? null,
+    action: String(row.action),
+    targetType: (row.target_type as string | null) ?? null,
+    targetId: (row.target_id as string | null) ?? null,
+    metadata: (row.metadata as Record<string, unknown>) ?? {},
+    ip: (row.ip as string | null) ?? null,
+    createdAt: String(row.created_at),
+  }));
 }
 

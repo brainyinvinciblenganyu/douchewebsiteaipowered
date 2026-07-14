@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useBackendAuth } from '../../components/BackendAuthProvider';
 import {
   ArrowRight,
   CheckCircle2,
@@ -22,7 +24,11 @@ import {
   CalendarCheck,
   Mail,
   Headphones,
+  Box,
+  Zap,
+  Store,
 } from 'lucide-react';
+import PageHero from '../../components/PageHero';
 
 type RevealProps = {
   children: React.ReactNode;
@@ -107,12 +113,12 @@ function StatCounter({
   }, [isVisible, value]);
 
   return (
-    <div ref={ref} className="rounded-[28px] border border-slate-200/70 bg-white/95 p-8 shadow-lg shadow-slate-900/5 backdrop-blur-sm">
-      <div className="text-4xl font-semibold text-slate-950">
+    <div ref={ref} className="rounded-[28px] border border-white/20 bg-white/10 p-8 backdrop-blur-sm">
+      <div className="text-4xl font-semibold text-white">
         {display.toLocaleString()}
         {suffix ?? ''}
       </div>
-      <div className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</div>
+      <div className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-sky-100">{label}</div>
     </div>
   );
 }
@@ -157,6 +163,16 @@ function AccordionItem({
 }
 
 export default function AboutPage() {
+  const router = useRouter();
+  const { user, isHydrated } = useBackendAuth();
+
+  const requireLoginForShop = (e: React.MouseEvent) => {
+    if (isHydrated && !user) {
+      e.preventDefault();
+      router.push('/auth/login');
+    }
+  };
+
   const team = useMemo(
     () => [
       {
@@ -190,17 +206,17 @@ export default function AboutPage() {
   const testimonials = useMemo(
     () => [
       {
-        name: 'Amina T.',
+        name: 'Abanda Sergio',
         text: 'The 3D preview made choosing effortless. Everything feels premium and clear—no guesswork.',
         img: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=256&q=80',
       },
       {
-        name: 'Samuel K.',
+        name: 'Abila Vin Wilson',
         text: 'As a vendor, the experience helps us present products in a way customers truly understand.',
         img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&q=80',
       },
       {
-        name: 'Mae J.',
+        name: 'Agbor Emmanuel',
         text: 'Smooth navigation, fast responses, and the recommendations actually feel personal.',
         img: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=256&q=80',
       },
@@ -246,31 +262,35 @@ export default function AboutPage() {
         {/* Section 1: Hero */}
         <section className="mx-auto max-w-7xl px-6 py-16">
           <Reveal>
-            <div className="rounded-[32px] border border-slate-200/70 bg-white/95 p-10 shadow-2xl shadow-slate-900/5 backdrop-blur-2xl">
+            <PageHero>
               <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
                 <div>
-                  <div className="hero-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm">
                     <Sparkles size={16} />
                     Experience-led commerce
                   </div>
-                  <h1 className="mt-5 text-5xl font-semibold tracking-tight text-slate-950">
+                  <h1 className="mt-5 text-5xl font-semibold tracking-tight text-white">
                     More Than Products—We&apos;re Building Better Experiences.
                   </h1>
-                  <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
+                  <p className="mt-4 max-w-2xl text-lg leading-8 text-sky-100">
                     Douche connects African craftsmanship with modern technology—so you can explore, preview, and request
                     with confidence.
                   </p>
                   <div className="mt-8 flex flex-wrap gap-4">
-                    <Link href="/products" className="btn-primary rounded-2xl">
+                    <Link
+                      href="/products"
+                      onClick={requireLoginForShop}
+                      className="inline-flex items-center rounded-2xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0058a3] transition hover:-translate-y-[1px] hover:shadow-lg"
+                    >
                       Shop Now <ArrowRight size={18} className="ml-2" />
                     </Link>
-                    <Link href="/contact" className="btn-secondary rounded-2xl">
+                    <Link href="/contact" className="inline-flex items-center rounded-2xl border-2 border-white px-6 py-3.5 text-sm font-semibold text-white transition hover:-translate-y-[1px] hover:bg-white hover:text-[#0058a3]">
                       Contact Us
                     </Link>
                   </div>
                 </div>
 
-                <div className="relative overflow-hidden rounded-[28px] border border-slate-200/70 bg-gradient-to-br from-slate-50 to-sky-50 p-6">
+                <div className="relative overflow-hidden rounded-[28px] border border-white/20 bg-gradient-to-br from-slate-50 to-sky-50 p-6">
                   <div className="absolute inset-0 opacity-30">
                     <div className="h-full w-full bg-[radial-gradient(circle_at_20%_20%,rgba(0,88,163,0.25),transparent_55%),radial-gradient(circle_at_80%_30%,rgba(245,158,11,0.20),transparent_50%)]" />
                   </div>
@@ -304,41 +324,37 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </PageHero>
           </Reveal>
         </section>
 
         {/* Section 2: Our Story */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
           <Reveal>
-            <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] items-center">
-              <div className="relative overflow-hidden rounded-[32px] border border-slate-200/70 bg-white/95 shadow-lg shadow-slate-900/5 backdrop-blur-sm">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(0,88,163,0.25),transparent_45%),radial-gradient(circle_at_70%_70%,rgba(245,158,11,0.16),transparent_50%)]" />
-                <div className="relative p-8">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                      <Users size={18} />
+            <PageHero>
+              <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] items-center">
+                <div className="relative overflow-hidden rounded-[28px] border border-white/20 bg-white/10 backdrop-blur-sm">
+                  <div className="relative p-8">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0058a3]">
+                        <Users size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">Crafted with care</p>
+                        <p className="text-xs text-sky-100">A modern platform for African products</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-950">Crafted with care</p>
-                      <p className="text-xs text-slate-500">A modern platform for African products</p>
-                    </div>
-                  </div>
-                  <div className="mt-6 aspect-[4/3] rounded-[24px] bg-slate-100 border border-slate-200/70" role="img" aria-label="About illustration placeholder">
-                    <div className="flex h-full w-full items-center justify-center text-slate-400">
-                      Illustration Placeholder
+                    <div className="mt-6 aspect-[4/3] rounded-[24px] bg-white/10 border border-white/20" role="img" aria-label="About illustration placeholder">
+                      <div className="flex h-full w-full items-center justify-center text-sky-100">
+                        Illustration Placeholder
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="relative">
-                <div className="absolute -top-10 -left-10 h-40 w-40 rounded-full bg-accent-soft blur-2xl" aria-hidden />
-                <div className="absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-accent-soft blur-2xl" aria-hidden />
-
-                <div className="rounded-[32px] border border-slate-200/70 bg-white/95 p-10 shadow-lg shadow-slate-900/5 backdrop-blur-sm">
-                  <h2 className="text-4xl font-semibold text-slate-950">Our Story</h2>
-                  <div className="mt-5 space-y-4 text-slate-600">
+                <div>
+                  <h2 className="text-4xl font-semibold text-white">Our Story</h2>
+                  <div className="mt-5 space-y-4 text-sky-100">
                     <p>
                       Douche started with one simple belief: online shopping should feel like exploring a showroom—not guessing from photos.
                     </p>
@@ -354,188 +370,231 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </PageHero>
           </Reveal>
         </section>
 
         {/* Section 3: Mission & Vision */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Reveal>
-              <div className="rounded-[32px] border border-slate-200/70 bg-white/95 p-10 shadow-lg shadow-slate-900/5 backdrop-blur-sm transition hover:-translate-y-1">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                    <TargetIcon />
+          <PageHero>
+            <div className="grid gap-6 md:grid-cols-2">
+              <Reveal>
+                <div className="rounded-[28px] border border-white/20 bg-white/10 p-10 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0058a3]">
+                      <TargetIcon />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-white">Mission</h3>
                   </div>
-                  <h3 className="text-2xl font-semibold text-slate-950">Mission</h3>
+                  <p className="mt-4 text-sky-100 leading-7">
+                    Deliver premium, confident shopping through immersive 3D previews and calm AI personalization—so customers choose faster and with trust.
+                  </p>
                 </div>
-                <p className="mt-4 text-slate-600 leading-7">
-                  Deliver premium, confident shopping through immersive 3D previews and calm AI personalization—so customers choose faster and with trust.
-                </p>
-              </div>
-            </Reveal>
-            <Reveal>
-              <div className="rounded-[32px] border border-slate-200/70 bg-white/95 p-10 shadow-lg shadow-slate-900/5 backdrop-blur-sm transition hover:-translate-y-1">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                    <VisionIcon />
+              </Reveal>
+              <Reveal>
+                <div className="rounded-[28px] border border-white/20 bg-white/10 p-10 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0058a3]">
+                      <VisionIcon />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-white">Vision</h3>
                   </div>
-                  <h3 className="text-2xl font-semibold text-slate-950">Vision</h3>
+                  <p className="mt-4 text-sky-100 leading-7">
+                    Make African products globally discoverable, beautifully presented, and sustainably delivered—one immersive experience at a time.
+                  </p>
                 </div>
-                <p className="mt-4 text-slate-600 leading-7">
-                  Make African products globally discoverable, beautifully presented, and sustainably delivered—one immersive experience at a time.
-                </p>
-              </div>
-            </Reveal>
-          </div>
+              </Reveal>
+            </div>
+          </PageHero>
         </section>
 
         {/* Section 4: Why Choose Us */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
-          <Reveal>
-            <div className="flex items-end justify-between gap-6 mb-8">
-              <div>
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Why Choose Douche</p>
-                <h2 className="mt-3 text-3xl font-semibold text-slate-950">Premium experiences built for everyday shopping</h2>
-              </div>
-            </div>
-          </Reveal>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { icon: <Sparkles size={22} />, title: 'Premium Quality', desc: 'Curated listings with clear product details and 3D-ready assets.' },
-              { icon: <Truck size={22} />, title: 'Fast Delivery', desc: 'Efficient request-to-confirm workflows designed to reduce waiting.' },
-              { icon: <Lock size={22} />, title: 'Secure Payments', desc: 'Verified checkout flows with safety-first handling (request-based in demo).' },
-              { icon: <Headphones size={22} />, title: 'Customer Support', desc: 'Support that helps you move from questions to decisions quickly.' },
-              { icon: <CalendarCheck size={22} />, title: 'Easy Returns', desc: 'Order-friendly policies handled with care after confirmation.' },
-              { icon: <Users size={22} />, title: 'Trusted by Thousands', desc: 'A platform customers trust for product discovery and experience.' },
-            ].map((f) => (
-              <Reveal key={f.title}>
-                <div className="rounded-[28px] border border-slate-200/70 bg-white/95 p-8 shadow-sm backdrop-blur-sm transition hover:-translate-y-1 hover:shadow-lg">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                    {f.icon}
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold text-slate-950">{f.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{f.desc}</p>
+          <PageHero>
+            <Reveal>
+              <div className="flex items-end justify-between gap-6 mb-8">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.3em] text-sky-100">Why Choose Douche</p>
+                  <h2 className="mt-3 text-3xl font-semibold text-white">Premium experiences built for everyday shopping</h2>
                 </div>
-              </Reveal>
-            ))}
-          </div>
+              </div>
+            </Reveal>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { icon: <Sparkles size={22} />, title: 'Premium Quality', desc: 'Curated listings with clear product details and 3D-ready assets.' },
+                { icon: <Truck size={22} />, title: 'Fast Delivery', desc: 'Efficient request-to-confirm workflows designed to reduce waiting.' },
+                { icon: <Lock size={22} />, title: 'Secure Payments', desc: 'Verified checkout flows with safety-first handling (request-based in demo).' },
+                { icon: <Headphones size={22} />, title: 'Customer Support', desc: 'Support that helps you move from questions to decisions quickly.' },
+                { icon: <CalendarCheck size={22} />, title: 'Easy Returns', desc: 'Order-friendly policies handled with care after confirmation.' },
+                { icon: <Users size={22} />, title: 'Trusted by Thousands', desc: 'A platform customers trust for product discovery and experience.' },
+              ].map((f) => (
+                <Reveal key={f.title}>
+                  <div className="rounded-[28px] border border-white/20 bg-white/10 p-8 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0058a3]">
+                      {f.icon}
+                    </div>
+                    <h3 className="mt-4 text-xl font-semibold text-white">{f.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-sky-100">{f.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </PageHero>
         </section>
 
         {/* Section 5: Our Values */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
-          <Reveal>
-            <h2 className="text-3xl font-semibold text-slate-950">Our Values</h2>
-            <p className="mt-3 max-w-2xl text-slate-600">The principles behind every preview, recommendation, and request.</p>
-          </Reveal>
+          <PageHero>
+            <Reveal>
+              <h2 className="text-3xl font-semibold text-white">Our Values</h2>
+              <p className="mt-3 max-w-2xl text-sky-100">The principles behind every preview, recommendation, and request.</p>
+            </Reveal>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { title: 'Integrity', icon: <ShieldCheck size={22} />, bg: 'from-[#e8f2fa] to-white', tint: 'text-[#0058a3]' },
-              { title: 'Innovation', icon: <Sparkles size={22} />, bg: 'from-cyan-50 to-white', tint: 'text-cyan-700' },
-              { title: 'Sustainability', icon: <Leaf size={22} />, bg: 'from-emerald-50 to-white', tint: 'text-emerald-700' },
-              { title: 'Customer First', icon: <Users size={22} />, bg: 'from-amber-50 to-white', tint: 'text-amber-700' },
-            ].map((v) => (
-              <Reveal key={v.title}>
-                <div className={`rounded-[28px] border border-slate-200/70 bg-white/95 p-8 shadow-sm backdrop-blur-sm transition hover:-translate-y-1 hover:shadow-lg`}>
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${v.bg}`}>
-                    <span className={`${v.tint}`}>{v.icon}</span>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { title: 'Integrity', icon: <ShieldCheck size={22} />, bg: 'from-[#e8f2fa] to-white', tint: 'text-[#0058a3]' },
+                { title: 'Innovation', icon: <Sparkles size={22} />, bg: 'from-cyan-50 to-white', tint: 'text-cyan-700' },
+                { title: 'Sustainability', icon: <Leaf size={22} />, bg: 'from-emerald-50 to-white', tint: 'text-emerald-700' },
+                { title: 'Customer First', icon: <Users size={22} />, bg: 'from-amber-50 to-white', tint: 'text-amber-700' },
+              ].map((v) => (
+                <Reveal key={v.title}>
+                  <div className={`rounded-[28px] border border-white/20 bg-white/10 p-8 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15`}>
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${v.bg}`}>
+                      <span className={`${v.tint}`}>{v.icon}</span>
+                    </div>
+                    <h3 className="mt-4 text-xl font-semibold text-white">{v.title}</h3>
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-slate-950">{v.title}</h3>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+                </Reveal>
+              ))}
+            </div>
+          </PageHero>
+        </section>
+
+        {/* Section 5b: What Makes Us Different */}
+        <section className="mx-auto max-w-7xl px-6 pb-16">
+          <PageHero>
+            <Reveal>
+              <p className="text-sm uppercase tracking-[0.3em] text-sky-100">Why Douche</p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">What makes us different</h2>
+              <p className="mt-3 max-w-2xl text-sky-100">The technology and standards behind every product experience.</p>
+            </Reveal>
+
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { icon: <Sparkles size={22} />, title: 'AI Recommendations', desc: 'Personalized product matches that learn from your browsing and shopping habits.' },
+                { icon: <Box size={22} />, title: '3D Product Viewer', desc: 'Rotate, zoom, and explore products in interactive 3D before you buy.' },
+                { icon: <ShieldCheck size={22} />, title: 'Secure Shopping', desc: 'Safety-first request and checkout flows that protect every transaction.' },
+                { icon: <Zap size={22} />, title: 'Fast Performance', desc: 'A responsive, modern storefront built for speed on any device.' },
+                { icon: <Store size={22} />, title: 'Vendor Friendly', desc: 'Simple tools for vendors to upload, manage, and showcase their catalog.' },
+                { icon: <Cpu size={22} />, title: 'Modern Technology', desc: 'AI-powered 3D generation and recommendations, built on a modern stack.' },
+              ].map((f) => (
+                <Reveal key={f.title}>
+                  <div className="rounded-[28px] border border-white/20 bg-white/10 p-8 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0058a3]">
+                      {f.icon}
+                    </div>
+                    <h3 className="mt-4 text-xl font-semibold text-white">{f.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-sky-100">{f.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </PageHero>
         </section>
 
         {/* Section 6: By the Numbers */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
-          <Reveal>
-            <h2 className="text-3xl font-semibold text-slate-950">By the Numbers</h2>
-            <p className="mt-3 max-w-2xl text-slate-600">Proof that premium experiences scale with trust.</p>
-          </Reveal>
+          <PageHero>
+            <Reveal>
+              <h2 className="text-3xl font-semibold text-white">By the Numbers</h2>
+              <p className="mt-3 max-w-2xl text-sky-100">Proof that premium experiences scale with trust.</p>
+            </Reveal>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCounter value={10000} suffix="+" label="Happy Customers" />
-            <StatCounter value={500} suffix="+" label="Products" />
-            <StatCounter value={50} suffix="+" label="Countries Served" />
-            <StatCounter value={99} suffix="%" label="Customer Satisfaction" />
-          </div>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCounter value={10000} suffix="+" label="Happy Customers" />
+              <StatCounter value={500} suffix="+" label="Products" />
+              <StatCounter value={50} suffix="+" label="Countries Served" />
+              <StatCounter value={99} suffix="%" label="Customer Satisfaction" />
+            </div>
+          </PageHero>
         </section>
 
         {/* Section 7: Meet the Team */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
-          <Reveal>
-            <h2 className="text-3xl font-semibold text-slate-950">Meet the Team</h2>
-            <p className="mt-3 max-w-2xl text-slate-600">People behind the platform—focused on quality and clarity.</p>
-          </Reveal>
+          <PageHero>
+            <Reveal>
+              <h2 className="text-3xl font-semibold text-white">Meet the Team</h2>
+              <p className="mt-3 max-w-2xl text-sky-100">People behind the platform—focused on quality and clarity.</p>
+            </Reveal>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {team.map((m) => (
-              <Reveal key={m.name}>
-                <article className="rounded-[32px] border border-slate-200/70 bg-white/95 p-8 shadow-sm backdrop-blur-sm transition hover:-translate-y-1 hover:shadow-lg">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="relative h-20 w-20 overflow-hidden rounded-full border border-slate-200/70 bg-slate-100">
-                      <div className="absolute inset-0 bg-slate-100" />
-                      {/* Image placeholder */}
-                      <img src={m.img} alt={m.name} className="h-full w-full object-cover" loading="lazy" />
-                    </div>
-                    <h3 className="mt-4 text-xl font-semibold text-slate-950">{m.name}</h3>
-                    <p className="mt-1 text-sm font-medium text-slate-600">{m.position}</p>
-                    <p className="mt-4 text-sm leading-6 text-slate-600">{m.bio}</p>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {team.map((m) => (
+                <Reveal key={m.name}>
+                  <article className="rounded-[28px] border border-white/20 bg-white/10 p-8 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="relative h-20 w-20 overflow-hidden rounded-full border border-white/30 bg-white/10">
+                        {/* Image placeholder */}
+                        <img src={m.img} alt={m.name} className="h-full w-full object-cover" loading="lazy" />
+                      </div>
+                      <h3 className="mt-4 text-xl font-semibold text-white">{m.name}</h3>
+                      <p className="mt-1 text-sm font-medium text-sky-100">{m.position}</p>
+                      <p className="mt-4 text-sm leading-6 text-sky-100">{m.bio}</p>
 
-                    <div className="mt-6 flex items-center gap-3" aria-label={`${m.name} social links`}>
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/70 bg-white text-slate-500" aria-hidden>
-                        <Instagram size={16} />
-                      </span>
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/70 bg-white text-slate-500" aria-hidden>
-                        <Twitter size={16} />
-                      </span>
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/70 bg-white text-slate-500" aria-hidden>
-                        <Linkedin size={16} />
-                      </span>
+                      <div className="mt-6 flex items-center gap-3" aria-label={`${m.name} social links`}>
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white" aria-hidden>
+                          <Instagram size={16} />
+                        </span>
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white" aria-hidden>
+                          <Twitter size={16} />
+                        </span>
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white" aria-hidden>
+                          <Linkedin size={16} />
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              </Reveal>
-            ))}
-          </div>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+          </PageHero>
         </section>
 
         {/* Section 8: Our Process */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
-          <Reveal>
-            <h2 className="text-3xl font-semibold text-slate-950">Our Process</h2>
-            <p className="mt-3 max-w-2xl text-slate-600">From selection to delivery—with quality checks at every step.</p>
-          </Reveal>
+          <PageHero>
+            <Reveal>
+              <h2 className="text-3xl font-semibold text-white">Our Process</h2>
+              <p className="mt-3 max-w-2xl text-sky-100">From selection to delivery—with quality checks at every step.</p>
+            </Reveal>
 
-          <div className="mt-10">
-            <ol className="relative grid gap-6 md:grid-cols-1 md:gap-8 lg:gap-0 lg:grid-cols-5">
-              {[
-                { t: 'Product Selection', icon: <Sparkles size={18} /> },
-                { t: 'Quality Inspection', icon: <ShieldCheck size={18} /> },
-                { t: 'Secure Packaging', icon: <Package size={18} /> },
-                { t: 'Fast Shipping', icon: <Truck size={18} /> },
-                { t: 'Happy Customer', icon: <Users size={18} /> },
-              ].map((step, idx) => (
-                <li key={step.t} className="lg:relative">
-                  <div className="flex flex-col items-start lg:items-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                      {step.icon}
+            <div className="mt-10">
+              <ol className="relative grid gap-6 md:grid-cols-1 md:gap-8 lg:gap-0 lg:grid-cols-5">
+                {[
+                  { t: 'Product Selection', icon: <Sparkles size={18} /> },
+                  { t: 'Quality Inspection', icon: <ShieldCheck size={18} /> },
+                  { t: 'Secure Packaging', icon: <Package size={18} /> },
+                  { t: 'Fast Shipping', icon: <Truck size={18} /> },
+                  { t: 'Happy Customer', icon: <Users size={18} /> },
+                ].map((step, idx) => (
+                  <li key={step.t} className="lg:relative">
+                    <div className="flex flex-col items-start lg:items-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0058a3]">
+                        {step.icon}
+                      </div>
+                      <div className="mt-3 text-left lg:text-center">
+                        <p className="text-base font-semibold text-white">{step.t}</p>
+                      </div>
                     </div>
-                    <div className="mt-3 text-left lg:text-center">
-                      <p className="text-base font-semibold text-slate-950">{step.t}</p>
-                    </div>
-                  </div>
 
-                  {idx !== 4 && (
-                    <div className="hidden lg:block absolute left-1/2 top-6 h-px w-full bg-slate-200/70" aria-hidden />
-                  )}
-                </li>
-              ))}
-            </ol>
-          </div>
+                    {idx !== 4 && (
+                      <div className="hidden lg:block absolute left-1/2 top-6 h-px w-full bg-white/25" aria-hidden />
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </PageHero>
         </section>
 
         {/* Section 9: Testimonials */}
@@ -571,29 +630,31 @@ export default function AboutPage() {
 
         {/* Section 10: Trust & Certifications */}
         <section className="mx-auto max-w-7xl px-6 pb-16">
-          <Reveal>
-            <h2 className="text-3xl font-semibold text-slate-950">Trust &amp; Certifications</h2>
-            <p className="mt-3 max-w-2xl text-slate-600">Premium standards for secure and sustainable shopping.</p>
-          </Reveal>
+          <PageHero>
+            <Reveal>
+              <h2 className="text-3xl font-semibold text-white">Trust &amp; Certifications</h2>
+              <p className="mt-3 max-w-2xl text-sky-100">Premium standards for secure and sustainable shopping.</p>
+            </Reveal>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { t: 'Secure Payments', icon: <DollarSign size={20} /> },
-              { t: 'Quality Guarantee', icon: <ShieldCheck size={20} /> },
-              { t: 'Eco Friendly', icon: <Leaf size={20} /> },
-              { t: 'Fast Shipping', icon: <Truck size={20} /> },
-            ].map((x) => (
-              <Reveal key={x.t}>
-                <div className="rounded-[28px] border border-slate-200/70 bg-white/95 p-8 shadow-sm backdrop-blur-sm transition hover:-translate-y-1 hover:shadow-lg">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#e8f2fa] to-white text-[#0058a3]">
-                    {x.icon}
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { t: 'Secure Payments', icon: <DollarSign size={20} /> },
+                { t: 'Quality Guarantee', icon: <ShieldCheck size={20} /> },
+                { t: 'Eco Friendly', icon: <Leaf size={20} /> },
+                { t: 'Fast Shipping', icon: <Truck size={20} /> },
+              ].map((x) => (
+                <Reveal key={x.t}>
+                  <div className="rounded-[28px] border border-white/20 bg-white/10 p-8 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#e8f2fa] to-white text-[#0058a3]">
+                      {x.icon}
+                    </div>
+                    <p className="mt-4 text-base font-semibold text-white">{x.t}</p>
+                    <p className="mt-2 text-sm text-sky-100">Premium promise backed by careful workflows.</p>
                   </div>
-                  <p className="mt-4 text-base font-semibold text-slate-950">{x.t}</p>
-                  <p className="mt-2 text-sm text-slate-600">Premium promise backed by careful workflows.</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+                </Reveal>
+              ))}
+            </div>
+          </PageHero>
         </section>
 
         {/* Section 11: FAQ */}
@@ -622,7 +683,11 @@ export default function AboutPage() {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 sm:justify-end">
-                  <Link href="/products" className="btn-primary rounded-2xl">
+                  <Link
+                    href="/products"
+                    onClick={requireLoginForShop}
+                    className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0058a3] transition hover:-translate-y-[1px] hover:shadow-lg"
+                  >
                     Shop Collection
                   </Link>
                   <Link href="/contact" className="btn-secondary rounded-2xl text-white" style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.18)' }}>

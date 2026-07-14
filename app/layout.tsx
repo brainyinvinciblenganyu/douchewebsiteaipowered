@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import TabIndicator from '../components/TabIndicator';
 import Brainy from '../components/Brainy';
+import PageTransition from '../components/PageTransition';
 
 const fontVariables = {
   '--font-sans': 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -25,11 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="page-shell theme-shell antialiased" style={fontVariables}>
+      <body className="page-shell theme-shell antialiased" style={fontVariables} suppressHydrationWarning>
         <AuthProvider>
           <Navbar />
           <TabIndicator />
-          <main className="main-content">{children}</main>
+          <main className="main-content">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <Footer />
           <Brainy />
         </AuthProvider>

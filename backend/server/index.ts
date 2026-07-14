@@ -9,6 +9,10 @@ import recommendationRoutes from './routes/recommendation.routes.js';
 import productRoutes from './routes/products.routes.js';
 import orderRoutes from './routes/orders.routes.js';
 import brainyRoutes from './routes/brainy.routes.js';
+import messagesRoutes from './routes/messages.routes.js';
+import contactRoutes from './routes/contact.routes.js';
+import adminRoutes from './routes/admin.routes.js';
+import adminAuthRoutes from './routes/adminAuth.routes.js';
 
 import { productAssetUpload } from './middleware/uploadProductAsset.js';
 import { initDatabase } from './db/init.js';
@@ -40,6 +44,10 @@ await initDatabase();
 
 const app = express();
 
+// Correct req.ip behind a reverse proxy (e.g. Vercel) — needed for admin
+// login rate limiting and audit log IP recording to see the real client IP.
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 const corsOptions = {
@@ -70,6 +78,7 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', adminAuthRoutes);
 
 // Accept vendor product creation payloads.
 // Supports multipart/form-data uploads for 3D files.
@@ -86,6 +95,9 @@ app.use(
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/brainy', brainyRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handler for Multer (file upload) errors and centralized errors
 app.use((err: any, _req: Request, res: Response, next: (err?: any) => void) => {

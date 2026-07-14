@@ -304,9 +304,9 @@ function ProductPageContent() {
         </Link>
 
         <div className="mt-6 grid gap-10 xl:grid-cols-[1.2fr_0.8fr]">
-          <article className="rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-2xl shadow-slate-900/5 backdrop-blur-2xl">
+          <article className="rounded-[32px] border border-blue-400/30 bg-blue-600 p-8 shadow-2xl shadow-blue-900/20">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[32px] overflow-hidden border border-slate-200 bg-slate-100 shadow-sm">
+              <div className="rounded-[32px] overflow-hidden border border-blue-400/30 bg-white shadow-sm">
                 <div className="h-[520px] w-full relative">
                   <ModelViewer modelUrl={modelUrl} />
                 </div>
@@ -314,29 +314,29 @@ function ProductPageContent() {
 
               <div className="space-y-6">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.3em] text-[#0058a3]">Product details</p>
-                  <h1 className="mt-4 text-4xl font-semibold text-slate-950">{product.name}</h1>
+                  <p className="text-sm font-bold uppercase tracking-[0.3em] text-[#ffdb00]">Product details</p>
+                  <h1 className="mt-4 text-4xl font-bold text-white">{product.name}</h1>
 
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     {ratingSummary.count > 0 ? (
                       <a href="#reviews" className="flex items-center gap-2 transition hover:opacity-80">
                         <StarRow value={ratingSummary.average} size={17} />
-                        <span className="text-sm font-semibold text-slate-900">
+                        <span className="text-sm font-bold text-white">
                           {ratingSummary.average.toFixed(1)}
                         </span>
-                        <span className="text-sm text-slate-500">
+                        <span className="text-sm font-semibold text-blue-100">
                           ({ratingSummary.count} {ratingSummary.count === 1 ? 'review' : 'reviews'})
                         </span>
                       </a>
                     ) : (
-                      <a href="#reviews" className="text-sm text-slate-500 transition hover:text-[#0058a3]">
+                      <a href="#reviews" className="text-sm font-semibold text-blue-100 transition hover:text-[#ffdb00]">
                         No reviews yet — be the first
                       </a>
                     )}
                     {product.category && (
                       <>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-sm text-slate-600">{product.category}</span>
+                        <span className="text-blue-300">•</span>
+                        <span className="text-sm font-semibold text-blue-100">{product.category}</span>
                       </>
                     )}
                   </div>
@@ -346,28 +346,28 @@ function ProductPageContent() {
                   {tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-3xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900"
+                      className="rounded-3xl bg-blue-500/40 px-4 py-2 text-sm font-bold text-white"
                     >
                       {tag}
                     </span>
                   ))}
                   {product.status && (
-                    <span className="rounded-3xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 capitalize">
+                    <span className="rounded-3xl bg-blue-500/40 px-4 py-2 text-sm font-bold text-white capitalize">
                       {product.status}
                     </span>
                   )}
                 </div>
 
-                <div className="rounded-[32px] border border-slate-200 bg-slate-50 p-6">
+                <div className="rounded-[32px] border border-blue-400/30 bg-blue-500/40 p-6">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="text-3xl font-semibold text-slate-950">
+                    <p className="text-3xl font-bold text-white">
                       {product.currency} {Number(product.price ?? 0).toLocaleString()}
                     </p>
-                    <span className="rounded-3xl bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-900">
+                    <span className="rounded-3xl bg-[#ffdb00] px-4 py-2 text-sm font-bold text-blue-950">
                       Available
                     </span>
                   </div>
-                  <p className="mt-3 text-slate-600">
+                  <p className="mt-3 font-medium text-blue-100">
                     Experience immersive 3D preview and add this item to your cart.
                   </p>
                 </div>
@@ -375,8 +375,8 @@ function ProductPageContent() {
                 <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto]">
                   <button
                     onClick={addToCart}
-                    className={`flex items-center justify-center gap-2 rounded-3xl px-6 py-4 text-sm font-semibold text-white transition ${
-                      added ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-950 hover:bg-slate-800'
+                    className={`flex items-center justify-center gap-2 rounded-3xl px-6 py-4 text-sm font-bold transition ${
+                      added ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-[#ffdb00] text-blue-950 hover:bg-[#e6c600]'
                     }`}
                   >
                     <ShoppingBag size={18} />
@@ -386,62 +386,62 @@ function ProductPageContent() {
                     onClick={toggleWishlist}
                     className={`flex items-center justify-center rounded-3xl border p-4 transition ${
                       isWishlisted
-                        ? 'border-rose-200 bg-rose-50 text-rose-500'
-                        : 'border-slate-200 text-slate-500 hover:bg-slate-100'
+                        ? 'border-rose-300 bg-rose-500/20 text-rose-200'
+                        : 'border-blue-400/30 bg-blue-500/30 text-blue-100 hover:bg-blue-500/50'
                     }`}
                     title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
                   >
-                    <Heart size={20} className={isWishlisted ? 'fill-rose-500 text-rose-500' : ''} />
+                    <Heart size={20} className={isWishlisted ? 'fill-rose-300 text-rose-300' : ''} />
                   </button>
                   <Link
                     href="/cart"
-                    className="rounded-3xl border border-slate-200 px-6 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 inline-flex items-center justify-center"
+                    className="rounded-3xl border border-blue-400/30 bg-blue-500/30 px-6 py-4 text-sm font-bold text-white transition hover:bg-blue-500/50 inline-flex items-center justify-center"
                   >
                     Review in cart
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 border-t border-slate-100 pt-6">
+                <div className="grid grid-cols-3 gap-3 border-t border-blue-400/30 pt-6">
                   <div className="flex flex-col items-center gap-1.5 text-center">
-                    <ShieldCheck size={18} className="text-[#0058a3]" />
-                    <p className="text-xs font-medium text-slate-600">Secure checkout</p>
+                    <ShieldCheck size={18} className="text-[#ffdb00]" />
+                    <p className="text-xs font-bold text-blue-100">Secure checkout</p>
                   </div>
                   <div className="flex flex-col items-center gap-1.5 text-center">
-                    <Truck size={18} className="text-[#0058a3]" />
-                    <p className="text-xs font-medium text-slate-600">Fast delivery</p>
+                    <Truck size={18} className="text-[#ffdb00]" />
+                    <p className="text-xs font-bold text-blue-100">Fast delivery</p>
                   </div>
                   <div className="flex flex-col items-center gap-1.5 text-center">
-                    <RotateCcw size={18} className="text-[#0058a3]" />
-                    <p className="text-xs font-medium text-slate-600">Easy returns</p>
+                    <RotateCcw size={18} className="text-[#ffdb00]" />
+                    <p className="text-xs font-bold text-blue-100">Easy returns</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-10 grid gap-6 lg:grid-cols-2">
-              <div className="rounded-[32px] border border-slate-200 bg-slate-50 p-6">
-                <h2 className="text-xl font-semibold text-slate-950">Description</h2>
-                <p className="mt-4 leading-relaxed text-slate-600">
+              <div className="rounded-[32px] border border-blue-400/30 bg-blue-500/40 p-6">
+                <h2 className="text-xl font-bold text-white">Description</h2>
+                <p className="mt-4 leading-relaxed font-medium text-blue-100">
                   {product.description || 'No description provided for this product.'}
                 </p>
               </div>
 
-              <div className="rounded-[32px] border border-slate-200 bg-slate-50 p-6">
-                <h2 className="text-xl font-semibold text-slate-950">Details</h2>
+              <div className="rounded-[32px] border border-blue-400/30 bg-blue-500/40 p-6">
+                <h2 className="text-xl font-bold text-white">Details</h2>
                 <div className="mt-4 grid gap-4">
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Category</p>
-                    <p className="mt-2 text-base font-semibold text-slate-950">{product.category || '—'}</p>
+                  <div className="rounded-3xl bg-white/10 p-4">
+                    <p className="text-sm uppercase tracking-[0.24em] text-blue-200">Category</p>
+                    <p className="mt-2 text-base font-bold text-white">{product.category || '—'}</p>
                   </div>
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Price</p>
-                    <p className="mt-2 text-base font-semibold text-slate-950">
+                  <div className="rounded-3xl bg-white/10 p-4">
+                    <p className="text-sm uppercase tracking-[0.24em] text-blue-200">Price</p>
+                    <p className="mt-2 text-base font-bold text-white">
                       {product.currency} {Number(product.price ?? 0).toLocaleString()}
                     </p>
                   </div>
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Model file</p>
-                    <p className="mt-2 text-base font-semibold text-slate-950 break-all">
+                  <div className="rounded-3xl bg-white/10 p-4">
+                    <p className="text-sm uppercase tracking-[0.24em] text-blue-200">Model file</p>
+                    <p className="mt-2 text-base font-bold text-white break-all">
                       {product.asset_name || '—'}
                     </p>
                   </div>

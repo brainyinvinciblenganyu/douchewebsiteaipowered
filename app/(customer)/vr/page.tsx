@@ -7,6 +7,7 @@ import { products } from '../../../lib/mockData';
 import { useEffect } from 'react';
 import { Box, Package, ShoppingBag, Table } from 'lucide-react';
 import ModelViewer from '../../../components/ModelViewer';
+import PageHero from '../../../components/PageHero';
 
 const styles = `
   @keyframes slideInLeft {
@@ -164,7 +165,7 @@ export default function VRPage() {
 
       <main className="p-10 max-w-7xl mx-auto">
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-[#0058a3] to-blue-600 rounded-2xl p-12 mb-12 text-white text-center">
+        <PageHero className="mb-12 text-center">
           <div className="flex justify-center mb-6">
             <div className="bg-white/20 p-6 rounded-full relative w-36 h-36 flex items-center justify-center">
               <img
@@ -202,7 +203,7 @@ export default function VRPage() {
               </button>
             </Link>
           </div>
-        </section>
+        </PageHero>
 
         {/* VR Instructions */}
         <section className="bg-white rounded-2xl p-8 mb-12 shadow-lg">

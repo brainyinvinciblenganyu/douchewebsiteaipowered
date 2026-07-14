@@ -9,8 +9,21 @@ CREATE TABLE IF NOT EXISTS users (
   name text,
   company_name text,
   location text,
+  is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+
+-- Admin role, gated entirely server-side (see tools/create_admin_user.ts —
+-- there is no public admin-signup path).
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer', 'vendor', 'admin'));
+
+-- TOTP 2FA, only ever populated for admin accounts.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_recovery_codes text[];
 
 CREATE TABLE IF NOT EXISTS sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,7 +48,7 @@ CREATE TABLE IF NOT EXISTS products (
   asset_size integer,
   asset_data text,
   asset_file bytea,
-  status text NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')),
+  status text NOT NULL DEFAULT 'pending_review' CHECK (status IN ('draft', 'pending_review', 'published', 'archived')),
   stock_quantity integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -43,6 +56,12 @@ CREATE TABLE IF NOT EXISTS products (
 -- Idempotent: adds the column to already-existing tables (initDatabase()
 -- re-runs this whole file on every backend boot).
 ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity integer NOT NULL DEFAULT 0;
+
+-- Product approval gate: a vendor's new product starts as 'pending_review'
+-- and only an admin approval (see admin.routes.ts) can move it to 'published'.
+ALTER TABLE products DROP CONSTRAINT IF EXISTS products_status_check;
+ALTER TABLE products ADD CONSTRAINT products_status_check
+  CHECK (status IN ('draft', 'pending_review', 'published', 'archived'));
 
 CREATE TABLE IF NOT EXISTS user_interactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -114,6 +133,52 @@ CREATE TABLE IF NOT EXISTS product_reviews (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (product_id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS email_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_email text NOT NULL,
+  contact_name text,
+  direction text NOT NULL CHECK (direction IN ('inbound', 'outbound')),
+  subject text,
+  body_text text,
+  body_html text,
+  message_id text,
+  source text NOT NULL DEFAULT 'imap' CHECK (source IN ('imap', 'contact_form', 'admin_reply')),
+  is_read boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_email_messages_message_id ON email_messages(message_id) WHERE message_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_email_messages_contact_email_created_at ON email_messages(contact_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_email_messages_is_read ON email_messages(is_read) WHERE direction = 'inbound';
+
+-- Every sensitive admin action, attributed to a real admin_id.
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  action text NOT NULL,
+  target_type text,
+  target_id text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ip text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at ON admin_audit_log(created_at DESC);
+
+-- DB-backed login attempt tracking for rate limiting/lockout on the admin
+-- login endpoint. DB-backed (not in-memory) so it stays correct even if this
+-- backend ever runs as short-lived serverless functions.
+CREATE TABLE IF NOT EXISTS admin_login_attempts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  identifier text NOT NULL,
+  ip text,
+  succeeded boolean NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_identifier ON admin_login_attempts(identifier, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_ip ON admin_login_attempts(ip, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_products_vendor_user_id ON products(vendor_user_id);

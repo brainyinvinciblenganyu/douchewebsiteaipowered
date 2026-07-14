@@ -3,18 +3,19 @@
 import Link from 'next/link';
 import { categories } from '../../lib/mockData';
 import { ArrowRight } from 'lucide-react';
+import PageHero from '../../components/PageHero';
 
 export default function CategoriesPage() {
   return (
     <div className="min-h-screen bg-transparent">
       <main className="max-w-7xl mx-auto px-6 py-16">
-        <section className="mb-16 section-card p-10 shadow-xl shadow-slate-900/5 backdrop-blur-2xl dark:shadow-slate-950/20">
+        <PageHero className="mb-16">
           <div className="max-w-3xl space-y-4">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Browse categories</p>
-            <h1 className="text-4xl font-semibold text-[#0058a3]">Explore curated category collections</h1>
-            <p className="text-slate-600 dark:text-slate-400">Find premium collections, AI-driven product groupings, and categories designed to match your interests.</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-sky-100">Browse categories</p>
+            <h1 className="text-4xl font-semibold text-white">Explore curated category collections</h1>
+            <p className="text-sky-100">Find premium collections, AI-driven product groupings, and categories designed to match your interests.</p>
           </div>
-        </section>
+        </PageHero>
 
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {categories.map((category) => (

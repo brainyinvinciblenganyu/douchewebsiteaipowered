@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { categories, products, vendors } from '../lib/mockData';
 import { ArrowRight, Globe, Sparkles, TrendingUp, ShieldCheck, Users } from 'lucide-react';
 import ModelViewer from '../components/ModelViewer';
+import PageHero from '../components/PageHero';
 
 const stats = [
   { label: 'Personalized matches', value: '148+', icon: Sparkles },
@@ -21,62 +22,64 @@ export default function Home() {
   return (
     <div className="bg-transparent">
     <main className="mx-auto max-w-7xl px-6 py-14">
-        <section className="mb-20 grid items-center gap-10 lg:grid-cols-[1.25fr_0.95fr]">
-          <div className="space-y-8">
-            <div className="hero-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm">
-              <Sparkles size={16} />
-              Intelligent recommendations powered by quiet AI
-            </div>
-            <div className="space-y-6">
-              <h1 className="max-w-3xl text-5xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-                Premium commerce, reimagined with immersive 3D and calm intelligence.
-              </h1>
-              <p className="max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">
-                Discover curated products tailored to your taste, view interactive previews, and move from inspiration to request with a refined experience that feels modern and effortless.
-              </p>
-            </div>
+        <PageHero className="mb-20">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.25fr_0.95fr]">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-sm font-semibold text-white shadow-sm backdrop-blur-sm">
+                <Sparkles size={16} />
+                Intelligent recommendations powered by quiet AI
+              </div>
+              <div className="space-y-6">
+                <h1 className="max-w-3xl text-5xl font-semibold tracking-tight text-white">
+                  Premium commerce, reimagined with immersive 3D and calm intelligence.
+                </h1>
+                <p className="max-w-2xl text-lg leading-8 text-sky-100">
+                  Discover curated products tailored to your taste, view interactive previews, and move from inspiration to request with a refined experience that feels modern and effortless.
+                </p>
+              </div>
 
-            <div className="flex flex-wrap gap-4">
-              <Link href="/products" className="btn-primary inline-flex items-center rounded-2xl px-6 py-4 text-sm font-semibold transition hover:translate-y-[-1px]">
-                Browse catalog
-                <ArrowRight size={18} className="ml-2" />
-              </Link>
-              <Link href="/vendor/dashboard" className="btn-secondary inline-flex items-center rounded-2xl px-6 py-4 text-sm font-semibold transition hover:translate-y-[-1px]">
-                Explore vendor tools
-              </Link>
-            </div>
+              <div className="flex flex-wrap gap-4">
+                <Link href="/products" className="inline-flex items-center rounded-2xl bg-white px-6 py-4 text-sm font-semibold text-[#0058a3] transition hover:-translate-y-[1px] hover:shadow-lg">
+                  Browse catalog
+                  <ArrowRight size={18} className="ml-2" />
+                </Link>
+                <Link href="/vendor/dashboard" className="inline-flex items-center rounded-2xl border-2 border-white px-6 py-4 text-sm font-semibold text-white transition hover:-translate-y-[1px] hover:bg-white hover:text-[#0058a3]">
+                  Explore vendor tools
+                </Link>
+              </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {stats.map((stat) => (
-                <div key={stat.label} className="surface-card rounded-[24px] p-6">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
-                    <stat.icon size={20} />
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="rounded-[24px] border border-white/20 bg-white/10 p-6 backdrop-blur-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#0058a3]">
+                      <stat.icon size={20} />
+                    </div>
+                    <p className="mt-5 text-3xl font-semibold text-white">{stat.value}</p>
+                    <p className="mt-2 text-sm text-sky-100">{stat.label}</p>
                   </div>
-                  <p className="mt-5 text-3xl font-semibold text-slate-950 dark:text-white">{stat.value}</p>
-                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{stat.label}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="surface-card space-y-6 overflow-hidden rounded-[36px] p-6">
-            <div className="overflow-hidden rounded-[32px] border border-slate-100/80 bg-slate-900/5 dark:border-slate-700/70">
-              <div className="relative h-[420px] w-full overflow-hidden lg:h-[500px]">
-                <ModelViewer modelUrl={`/models/${heroProduct.model}`} />
+            <div className="space-y-6 overflow-hidden rounded-[36px] bg-white/95 p-6 shadow-xl">
+              <div className="overflow-hidden rounded-[32px] border border-slate-100/80 bg-slate-900/5">
+                <div className="relative h-[420px] w-full overflow-hidden lg:h-[500px]">
+                  <ModelViewer modelUrl={`/models/${heroProduct.model}`} />
+                </div>
               </div>
-            </div>
-            <div className="space-y-3">
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Featured 3D product</p>
-              <h2 className="text-3xl font-semibold text-slate-950 dark:text-white">{heroProduct.name}</h2>
-              <p className="text-slate-600 dark:text-slate-400">{heroProduct.shortDescription}</p>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{heroProduct.category}</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{heroProduct.vendorName}</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">{heroProduct.rating} ★</span>
+              <div className="space-y-3">
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Featured 3D product</p>
+                <h2 className="text-3xl font-semibold text-slate-950">{heroProduct.name}</h2>
+                <p className="text-slate-600">{heroProduct.shortDescription}</p>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{heroProduct.category}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{heroProduct.vendorName}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1">{heroProduct.rating} ★</span>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </PageHero>
 
         <section className="mb-20 grid gap-6 lg:grid-cols-2">
           <article className="surface-card rounded-[32px] p-10">
@@ -167,11 +170,11 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mb-20">
+        <PageHero className="mb-20">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Explore the experience</p>
-              <h2 className="mt-3 text-3xl font-semibold text-slate-950 dark:text-white">Jump into the full commerce journey.</h2>
+              <p className="text-sm uppercase tracking-[0.3em] text-sky-100">Explore the experience</p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">Jump into the full commerce journey.</h2>
             </div>
           </div>
 
@@ -184,13 +187,13 @@ export default function Home() {
               { href: '/vr', title: 'Enter the VR showroom', text: 'Experience immersive product exploration in a virtual environment.' },
               { href: '/contact', title: 'Talk to the team', text: 'Reach out for support, partnerships, or product questions.' },
             ].map((link) => (
-              <Link key={link.href} href={link.href} className="surface-card rounded-[28px] p-6 transition hover:-translate-y-1">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{link.title}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{link.text}</p>
+              <Link key={link.href} href={link.href} className="rounded-[28px] border border-white/20 bg-white/10 p-6 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
+                <p className="text-sm font-semibold text-white">{link.title}</p>
+                <p className="mt-2 text-sm leading-6 text-sky-100">{link.text}</p>
               </Link>
             ))}
           </div>
-        </section>
+        </PageHero>
 
         <section className="rounded-[32px] border border-slate-200/70 bg-slate-950/95 p-12 text-white shadow-2xl shadow-slate-950/20 backdrop-blur-2xl dark:border-slate-700/70">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">

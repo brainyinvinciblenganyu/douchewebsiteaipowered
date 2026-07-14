@@ -4,6 +4,7 @@ import type { File as MulterFile } from 'multer';
 import {
   createProduct,
   deleteProduct,
+  getProductById,
   getRatingSummary,
   getReviewsForProduct,
   listProducts,
@@ -116,11 +117,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    // Since we don't have a dedicated get-by-id query yet,
-    // we list products and filter by id.
-    // This keeps everything real-time with the DB.
-    const all = await listProducts(undefined);
-    const product = all.find((p) => String(p.id) === String(req.params.id));
+    const product = await getProductById(String(req.params.id));
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
@@ -201,7 +198,9 @@ router.post('/', async (req: Request, res: Response) => {
             ? null
             : String(payload.asset_data),
       asset_file,
-      status: firstString(payload.status) ?? 'published',
+      // New products always start pending admin review — a vendor can't
+      // bypass approval by sending status directly in the create payload.
+      status: 'pending_review',
       stock_quantity: parseStock(payload.stock_quantity) ?? 0,
     });
 
@@ -282,10 +281,16 @@ name:
         typeof payload.currency === 'undefined'
           ? undefined
           : firstString(payload.currency) ?? undefined,
+      // A vendor may take their own listing down ('draft'/'archived'), but
+      // can't self-publish — only admin approval can move a product to
+      // 'published', so a client-sent 'published' is silently ignored here.
       status:
         typeof payload.status === 'undefined'
           ? undefined
-          : firstString(payload.status) ?? undefined,
+          : (() => {
+              const requested = firstString(payload.status);
+              return requested === 'published' ? undefined : requested ?? undefined;
+            })(),
       stock_quantity: parseStock(payload.stock_quantity),
       asset_name:
         uploaded

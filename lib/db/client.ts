@@ -33,6 +33,7 @@ class InMemoryPool implements DbPoolLike {
         name,
         company_name: companyName,
         location,
+        is_active: true,
         created_at: new Date().toISOString(),
       };
       this.users.push(user);
@@ -127,6 +128,16 @@ class InMemoryPool implements DbPoolLike {
       };
       this.orderItems.push(item);
       return { rows: [item] };
+    }
+
+    if (normalized.includes('update orders') && normalized.includes("status = 'cancelled'")) {
+      const [orderId, userId] = params as [string, string];
+      const order = this.orders.find(
+        (o) => String(o.id) === String(orderId) && String(o.user_id) === String(userId) && o.status === 'pending',
+      );
+      if (!order) return { rows: [] };
+      order.status = 'cancelled';
+      return { rows: [{ id: order.id }] };
     }
 
     if (normalized.includes('from orders')) {

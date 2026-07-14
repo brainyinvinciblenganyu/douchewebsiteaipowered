@@ -38,7 +38,7 @@ export default function Navbar() {
           </div>
         </Link>
 
-        <div className="hidden items-center gap-8 text-sm font-medium text-[var(--color-foreground-muted)] lg:flex">
+        <div className="hidden items-center gap-3 text-sm lg:flex">
           {primaryLinks.map((item) => {
             const isActive = item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
 
@@ -47,7 +47,9 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`transition hover:text-[var(--color-foreground)] ${isActive ? 'font-semibold text-[var(--color-primary)]' : ''}`}
+                className={`rounded-xl px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90 ${
+                  isActive ? 'bg-[var(--color-primary-hover)]' : 'bg-[var(--color-primary)]'
+                }`}
               >
                 {item.label}
               </Link>
@@ -68,7 +70,7 @@ export default function Navbar() {
           {user?.role !== 'vendor' ? (
             <Link
               href="/cart"
-              className="inline-flex items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-foreground)] shadow-sm transition hover:bg-[var(--color-surface-alt)]"
+              className="inline-flex items-center justify-center rounded-xl bg-[var(--color-primary)] px-3 py-3 font-bold text-white shadow-sm transition hover:opacity-90"
             >
               <ShoppingCart size={18} />
             </Link>
@@ -78,13 +80,13 @@ export default function Navbar() {
             <div className="hidden items-center gap-3 lg:flex">
               <Link
                 href={user.role === 'vendor' ? '/vendor/dashboard' : '/recommendations'}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-foreground)] shadow-sm transition hover:bg-[var(--color-surface-alt)]"
+                className="rounded-xl bg-[var(--color-primary)] px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
               >
                 {user.name}
               </Link>
               <button
                 onClick={logout}
-                className="inline-flex items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-foreground)] shadow-sm transition hover:bg-[var(--color-surface-alt)]"
+                className="inline-flex items-center justify-center rounded-xl bg-[var(--color-primary)] px-3 py-3 font-bold text-white shadow-sm transition hover:opacity-90"
                 aria-label="Log out"
               >
                 <LogOut size={18} />
@@ -92,7 +94,7 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="hidden lg:block">
-              <Link href="/auth/login" className="btn-primary inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold">
+              <Link href="/auth/login" className="inline-flex items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:opacity-90">
                 <User size={18} className="mr-2" />
                 Login
               </Link>
@@ -109,8 +111,8 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
-                className={`block rounded-2xl px-3 py-3 transition hover:bg-[var(--color-surface-alt)] ${
-                  pathname === item.href ? 'bg-[var(--color-surface-alt)] text-[var(--color-foreground)]' : ''
+                className={`block rounded-xl px-3 py-3 font-bold text-white transition hover:opacity-90 ${
+                  pathname === item.href ? 'bg-[var(--color-primary-hover)]' : 'bg-[var(--color-primary)]'
                 }`}
               >
                 {item.label}
@@ -123,7 +125,7 @@ export default function Navbar() {
               <Link
                 href="/cart"
                 onClick={() => setMenuOpen(false)}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-foreground)] shadow-sm transition hover:bg-[var(--color-surface-alt)]"
+                className="rounded-xl bg-[var(--color-primary)] px-4 py-3 font-bold text-white shadow-sm transition hover:opacity-90"
               >
                 Cart
               </Link>
@@ -133,7 +135,7 @@ export default function Navbar() {
               <Link
                 href={user.role === 'vendor' ? '/vendor/dashboard' : '/recommendations'}
                 onClick={() => setMenuOpen(false)}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-foreground)] shadow-sm transition hover:bg-[var(--color-surface-alt)]"
+                className="rounded-xl bg-[var(--color-primary)] px-4 py-3 font-bold text-white shadow-sm transition hover:opacity-90"
               >
                 {user.name}
               </Link>
@@ -141,7 +143,7 @@ export default function Navbar() {
               <Link
                 href="/auth/login"
                 onClick={() => setMenuOpen(false)}
-                className="btn-primary inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold"
+                className="inline-flex items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
               >
                 <User size={18} className="mr-2" />
                 Login
@@ -154,7 +156,7 @@ export default function Navbar() {
                   setMenuOpen(false);
                   logout();
                 }}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-foreground)] shadow-sm transition hover:bg-[var(--color-surface-alt)]"
+                className="rounded-xl bg-[var(--color-primary)] px-4 py-3 font-bold text-white shadow-sm transition hover:opacity-90"
               >
                 Logout
               </button>

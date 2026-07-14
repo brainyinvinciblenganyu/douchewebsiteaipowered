@@ -1,5 +1,7 @@
 'use client';
 
+import PageHero from '../../components/PageHero';
+
 const faqs = [
   {
     question: 'How does AI personalize my product feed?',
@@ -23,14 +25,16 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen bg-transparent">
       <main className="max-w-6xl mx-auto px-6 py-16">
-        <section className="section-card p-10 shadow-xl shadow-slate-900/5 backdrop-blur-2xl dark:shadow-slate-950/20">
+        <PageHero>
           <div className="max-w-3xl space-y-4">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Support Center</p>
-            <h1 className="text-4xl font-semibold text-[#0058a3]">Frequently asked questions</h1>
-            <p className="text-slate-600 dark:text-slate-400">Get clarity on how personalized AI shopping, 3D product previews, and purchase request flows work on the platform.</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-sky-100">Support Center</p>
+            <h1 className="text-4xl font-semibold text-white">Frequently asked questions</h1>
+            <p className="text-sky-100">Get clarity on how personalized AI shopping, 3D product previews, and purchase request flows work on the platform.</p>
           </div>
+        </PageHero>
 
-          <div className="mt-12 grid gap-4">
+        <section className="section-card mt-8 p-10 shadow-xl shadow-slate-900/5 backdrop-blur-2xl dark:shadow-slate-950/20">
+          <div className="grid gap-4">
             {faqs.map((item) => (
               <details key={item.question} className="rounded-3xl border border-slate-200/80 p-6 bg-slate-50 dark:border-slate-700/80 dark:bg-slate-900/80">
                 <summary className="cursor-pointer text-lg font-semibold text-slate-900 dark:text-white">{item.question}</summary>

@@ -52,18 +52,18 @@ export default function RecommendationsPage() {
       <div className="min-h-screen bg-slate-50/30 dark:bg-slate-950/20 py-14">
         <main className="max-w-7xl mx-auto px-6">
           {/* Hero Section */}
-          <motion.section 
+          <motion.section
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-16 rounded-[32px] border border-slate-200/60 bg-white/80 p-10 shadow-xl shadow-slate-900/5 backdrop-blur-2xl dark:border-slate-800/60 dark:bg-slate-950/60"
+            className="mb-16 rounded-[32px] bg-gradient-to-r from-[#0058a3] to-blue-600 p-10 text-white shadow-2xl shadow-[#0058a3]/25 md:p-12"
           >
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#0058a3]/10 dark:bg-[#0058a3]/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#0058a3] dark:text-[#5cc7ff]">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
                   {isAiPowered ? (
                     <>
-                      <Sparkles size={14} className="animate-pulse text-[#0058a3] dark:text-[#5cc7ff]" />
+                      <Sparkles size={14} className="animate-pulse text-white" />
                       AI Preference Model Active
                     </>
                   ) : (
@@ -71,18 +71,18 @@ export default function RecommendationsPage() {
                   )}
                 </div>
 
-                <h1 className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                <h1 className="text-4xl font-semibold tracking-tight text-white">
                   Tailored product recommendations just for you
                 </h1>
 
-                <p className="max-w-2xl text-slate-600 dark:text-slate-400">
+                <p className="max-w-2xl text-sky-100">
                   Our hybrid intelligence scores candidates based on your browsing habits, cart actions, and purchases, while Google Gemini refines the selection and explains the matches.
                 </p>
               </div>
 
               <Link
                 href="/products"
-                className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition-all hover:shadow-lg hover:shadow-[#0058a3]/20"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-[#0058a3] transition-all hover:-translate-y-[1px] hover:shadow-lg"
               >
                 Browse Full Catalog
                 <ArrowRight size={18} />

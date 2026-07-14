@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { X, Send, Bot, Loader2, Sparkles } from 'lucide-react';
+import { X, Send, Bot, Loader2, Sparkles, RefreshCw, MessageSquarePlus } from 'lucide-react';
 import { useBackendAuth as useAuth } from './BackendAuthProvider';
 
 interface Message {
@@ -38,6 +38,7 @@ export default function Brainy() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,12 +65,21 @@ export default function Brainy() {
     const assistantId = nextMessageId();
     setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const response = await fetch('/api/brainy/chat', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: userMessage, history }),
+      signal: controller.signal,
+    }).catch((error) => {
+      if (error?.name === 'AbortError') return null;
+      throw error;
     });
+
+    if (!response) return;
 
     if (!response.ok || !response.body) {
       updateAssistantMessage(assistantId, () => "I'm sorry, I'm having trouble connecting right now. Please try again.");
@@ -81,7 +91,7 @@ export default function Brainy() {
     let buffer = '';
 
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await reader.read().catch(() => ({ done: true, value: undefined }));
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
@@ -105,7 +115,17 @@ export default function Brainy() {
         }
       }
     }
+
+    abortControllerRef.current = null;
   }, [scrollToBottom, updateAssistantMessage]);
+
+  const resetChat = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsStreaming(false);
+    setInput('');
+    setMessages([{ id: nextMessageId(), role: 'assistant', content: greeting }]);
+  }, [greeting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,13 +173,31 @@ export default function Brainy() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="hover:bg-white/20 p-2 rounded-lg transition"
-              aria-label="Close chat"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={resetChat}
+                className="hover:bg-white/20 p-2 rounded-lg transition"
+                aria-label="New chat"
+                title="New chat"
+              >
+                <MessageSquarePlus size={18} />
+              </button>
+              <button
+                onClick={resetChat}
+                className="hover:bg-white/20 p-2 rounded-lg transition"
+                aria-label="Refresh chat"
+                title="Refresh chat"
+              >
+                <RefreshCw size={18} />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="hover:bg-white/20 p-2 rounded-lg transition"
+                aria-label="Close chat"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-slate-50 to-white">

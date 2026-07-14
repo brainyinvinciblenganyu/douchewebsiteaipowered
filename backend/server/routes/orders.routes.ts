@@ -5,6 +5,7 @@ import {
   createOrder,
   getOrdersForVendor,
   getOrdersForCustomer,
+  cancelOrderForCustomer,
 } from '../../../lib/db/queries.js';
 
 const router = Router();
@@ -72,6 +73,25 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Load orders error:', error);
     res.status(500).json({ error: 'Failed to load orders' });
+  }
+});
+
+router.patch('/:id/cancel', async (req: Request, res: Response) => {
+  try {
+    const session = getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0]);
+    if (!session?.userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const cancelled = await cancelOrderForCustomer(req.params.id, session.userId);
+    if (!cancelled) {
+      return res.status(409).json({ error: 'This order can no longer be cancelled.' });
+    }
+
+    res.status(200).json({ status: 'success' });
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    res.status(500).json({ error: 'Failed to cancel order' });
   }
 });
 

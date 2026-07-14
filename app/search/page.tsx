@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { categories, products } from '../../lib/mockData';
 import { Search } from 'lucide-react';
 import { trackEvent } from '../../lib/track';
+import PageHero from '../../components/PageHero';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
@@ -44,27 +45,27 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-transparent">
       <main className="max-w-7xl mx-auto px-6 py-16">
-        <section className="rounded-[32px] border border-slate-200/70 bg-white/95 p-10 shadow-xl shadow-slate-900/5 backdrop-blur-2xl dark:border-slate-700/70 dark:bg-slate-950/80">
+        <PageHero>
           <div className="max-w-3xl">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Discover products</p>
-            <h1 className="mt-4 text-4xl font-semibold text-slate-950 dark:text-white">Search the catalog with intelligent filters.</h1>
+            <p className="text-sm uppercase tracking-[0.3em] text-sky-100">Discover products</p>
+            <h1 className="mt-4 text-4xl font-semibold text-white">Search the catalog with intelligent filters.</h1>
             <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_220px]">
-              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
-                <Search size={20} className="text-slate-500 dark:text-slate-400" />
+              <div className="flex items-center gap-3 rounded-3xl border border-white/20 bg-white/95 px-4 py-3">
+                <Search size={20} className="text-slate-500" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search for products, categories, or 3D models"
-                  className="w-full bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100"
+                  className="w-full bg-transparent text-slate-900 outline-none placeholder:text-slate-400"
                 />
               </div>
               <div>
-                <label htmlFor="category" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Category</label>
+                <label htmlFor="category" className="mb-2 block text-sm font-semibold text-sky-100">Category</label>
                 <select
                   id="category"
                   value={selectedCategory}
                   onChange={(event) => setSelectedCategory(event.target.value)}
-                  className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#0058a3] focus:ring-2 focus:ring-[#0058a3]/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="w-full rounded-3xl border border-white/20 bg-white/95 px-4 py-3 text-slate-900 outline-none transition focus:border-[#0058a3] focus:ring-2 focus:ring-[#0058a3]/20"
                 >
                   {categoryOptions.map((category) => (
                     <option key={category} value={category}>{category}</option>
@@ -73,7 +74,7 @@ export default function SearchPage() {
               </div>
             </div>
           </div>
-        </section>
+        </PageHero>
 
         <section className="mt-10 space-y-6">
           {query || selectedCategory !== 'All' ? (

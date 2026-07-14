@@ -10,7 +10,7 @@ export default function CustomerOrdersPage() {
           <p className="mt-3 text-slate-600">Track the products you have purchased. Your order history is saved each time you check out.</p>
 
           <div className="mt-8 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-            <OrderList />
+            <OrderList variant="light" />
           </div>
         </main>
       </div>

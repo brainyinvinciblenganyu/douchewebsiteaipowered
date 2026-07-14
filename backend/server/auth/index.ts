@@ -45,6 +45,11 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    if (user.role === 'vendor' && !user.is_active) {
+      console.warn('login failed: vendor account suspended');
+      return res.status(403).json({ success: false, message: 'Your vendor account has been suspended.' });
+    }
+
     const sessionRecord = await createSessionRecord(user.id, SESSION_TTL_SECONDS);
     setSessionCookie(res, { userId: user.id, sessionId: sessionRecord?.id });
     return res.status(200).json({ success: true });

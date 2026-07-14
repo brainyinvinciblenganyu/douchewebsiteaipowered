@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react';
 import VisitUsOnsite from '../../components/VisitUsOnsite';
+import PageHero from '../../components/PageHero';
 
 const backgroundImages = [
   'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1400&q=80',
@@ -97,14 +98,14 @@ export default function ContactPage() {
       </div>
 
       <main className="relative mx-auto max-w-6xl px-6 py-16">
-        <section className="mb-12 rounded-2xl bg-[#0058A3] p-12 shadow-lg shadow-slate-900/10 text-white">
+        <PageHero className="mb-12">
           <p className="text-sm uppercase tracking-[0.35em] text-sky-200">Contact</p>
           <h1 className="mt-4 text-5xl font-bold leading-tight">Talk to the team behind Douche.</h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-sky-100">
             Share your questions, requests, or vendor inquiries and our team will respond promptly.
             We make customer support feel premium, fast, and easy.
           </p>
-        </section>
+        </PageHero>
 
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-2xl bg-white p-10 shadow-lg shadow-slate-900/5 border border-[#D1D5DB]">

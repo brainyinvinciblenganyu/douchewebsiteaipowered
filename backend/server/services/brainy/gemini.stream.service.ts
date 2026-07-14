@@ -6,7 +6,7 @@ export async function* streamGeminiChat(prompt: string): AsyncGenerator<string> 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',
