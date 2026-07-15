@@ -1,13 +1,26 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 
-import { createSessionRecord, createUser, findUserByEmail, findUserById, revokeSessionRecord } from '../db/queries.js';
+import { createSessionRecord, createUser, findUserByEmail, findUserById, revokeSessionRecord, updateUserProfile } from '../db/queries.js';
 import { hashPassword, verifyPassword } from '../../../lib/auth/password.js';
 import { clearSessionCookie, getSessionFromRequest, setSessionCookie } from '../../../lib/auth/session.js';
 
 const authRouter = Router();
 
 const SESSION_TTL_SECONDS = Number(process.env.AUTH_SESSION_TTL_SECONDS || '2592000');
+
+// Zod's default error.message is a raw JSON array of issues — never show
+// that to a user. Translate the first issue into a plain sentence instead.
+function friendlyZodMessage(error: z.ZodError): string {
+  const first = error.issues[0];
+  if (!first) return 'Please check your input and try again.';
+
+  const field = String(first.path[0] ?? '');
+  if (field === 'email') return 'Please enter a valid email address.';
+  if (field === 'password') return 'Password must be at least 6 characters.';
+  if (field === 'role') return 'Please select a valid account type.';
+  return first.message || 'Please check your input and try again.';
+}
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -55,7 +68,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     return res.status(200).json({ success: true });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: friendlyZodMessage(error) });
     }
 
     console.error('login error', error);
@@ -89,7 +102,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     return res.status(201).json({ status: 'success' });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: friendlyZodMessage(error) });
     }
 
     console.error('register error', error);
@@ -115,16 +128,64 @@ authRouter.get('/me', async (req: Request, res: Response) => {
         email: user.email,
         role: user.role,
         name: user.name,
+        companyName: user.company_name,
         membership: null,
         location: user.location,
         preferences: [],
-        avatar: null,
+        avatar: user.avatar_data,
         bio: null,
       },
     });
   } catch (error) {
     console.error('me error', error);
     return res.status(500).json({ error: 'Failed' });
+  }
+});
+
+const profileSchema = z.object({
+  name: z.string().min(1).optional(),
+  company_name: z.string().min(1).nullable().optional(),
+  location: z.string().min(1).nullable().optional(),
+  avatar_data: z.string().nullable().optional(),
+});
+
+authRouter.patch('/me', async (req: Request, res: Response) => {
+  try {
+    const session = getSessionFromRequest(req as Parameters<typeof getSessionFromRequest>[0]);
+    if (!session) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const parsed = profileSchema.parse(req.body);
+
+    // A profile picture stored as base64 in Postgres text — keep it small
+    // (~1.5MB raw / ~2MB encoded) so a full-resolution photo can't bloat the row.
+    if (parsed.avatar_data && parsed.avatar_data.length > 2_000_000) {
+      return res.status(400).json({ error: 'Image is too large. Please use a smaller photo (under ~1.5MB).' });
+    }
+
+    const updated = await updateUserProfile(session.userId, parsed);
+    if (!updated) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.status(200).json({
+      user: {
+        id: updated.id,
+        email: updated.email,
+        role: updated.role,
+        name: updated.name,
+        companyName: updated.company_name,
+        location: updated.location,
+        avatar: updated.avatar_data,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: friendlyZodMessage(error) });
+    }
+    console.error('update profile error', error);
+    return res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

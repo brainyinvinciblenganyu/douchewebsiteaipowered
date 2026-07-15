@@ -21,3 +21,24 @@ export async function GET(req: NextRequest) {
   });
 }
 
+export async function PATCH(req: NextRequest) {
+  const body = await req.text();
+
+  const backendRes = await fetch(`${BACKEND_URL}/api/auth/me`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      cookie: req.headers.get('cookie') || '',
+    },
+    body,
+  });
+
+  const text = await backendRes.text();
+  return new NextResponse(text, {
+    status: backendRes.status,
+    headers: {
+      'content-type': backendRes.headers.get('content-type') || 'application/json',
+    },
+  });
+}
+

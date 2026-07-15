@@ -79,6 +79,18 @@ export default function Navbar() {
           {user ? (
             <div className="hidden items-center gap-3 lg:flex">
               <Link
+                href="/profile"
+                aria-label="Your profile"
+                className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-primary)] text-white shadow-sm transition hover:opacity-90"
+              >
+                {user.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <User size={18} />
+                )}
+              </Link>
+              <Link
                 href={user.role === 'vendor' ? '/vendor/dashboard' : '/recommendations'}
                 className="rounded-xl bg-[var(--color-primary)] px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
               >

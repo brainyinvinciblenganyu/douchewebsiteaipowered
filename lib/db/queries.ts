@@ -13,6 +13,7 @@ export type DbUser = {
   totp_secret: string | null;
   totp_enabled: boolean;
   totp_recovery_codes: string[] | null;
+  avatar_data: string | null;
   created_at: string;
 };
 
@@ -31,12 +32,13 @@ export type DbProduct = {
   asset_data: string | null;
   // Stored in Postgres as `bytea`.
   asset_file: Buffer | null;
+  image_data: string | null;
   status: string;
   stock_quantity: number;
   created_at: string;
 };
 
-const USER_COLUMNS = 'id, email, password_hash, role, name, company_name, location, is_active, totp_secret, totp_enabled, totp_recovery_codes, created_at';
+const USER_COLUMNS = 'id, email, password_hash, role, name, company_name, location, is_active, totp_secret, totp_enabled, totp_recovery_codes, avatar_data, created_at';
 
 export async function findUserByEmail(email: string): Promise<DbUser | null> {
   const pool = getPool();
@@ -77,6 +79,34 @@ export async function findUserById(id: string): Promise<DbUser | null> {
   const res = await pool.query(
     `SELECT ${USER_COLUMNS} FROM users WHERE id = $1 LIMIT 1`,
     [id],
+  );
+  return (res.rows[0] as DbUser | undefined) ?? null;
+}
+
+export async function updateUserProfile(
+  userId: string,
+  patch: { name?: string | null; company_name?: string | null; location?: string | null; avatar_data?: string | null },
+): Promise<DbUser | null> {
+  const pool = getPool();
+
+  const fields: Array<{ key: string; value: unknown }> = [];
+  const pushIfDefined = (key: string, value: unknown) => {
+    if (typeof value === 'undefined') return;
+    fields.push({ key, value });
+  };
+
+  pushIfDefined('name', patch.name);
+  pushIfDefined('company_name', patch.company_name);
+  pushIfDefined('location', patch.location);
+  pushIfDefined('avatar_data', patch.avatar_data);
+
+  if (fields.length === 0) return findUserById(userId);
+
+  const res = await pool.query(
+    `UPDATE users SET ${fields.map((f, idx) => `${f.key} = $${idx + 2}`).join(', ')}
+     WHERE id = $1
+     RETURNING ${USER_COLUMNS}`,
+    [userId, ...fields.map((f) => f.value)],
   );
   return (res.rows[0] as DbUser | undefined) ?? null;
 }
@@ -122,14 +152,15 @@ export async function createProduct(params: {
   asset_size?: number | null;
   asset_data?: string | null;
   asset_file?: Buffer | null;
+  image_data?: string | null;
   status?: string;
   stock_quantity?: number;
 }): Promise<DbProduct> {
   const pool = getPool();
   const res = await pool.query(
-    `INSERT INTO products (name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-     RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at`,
+    `INSERT INTO products (name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+     RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at`,
     [
       params.name?.trim() || 'Untitled product',
       params.description ?? null,
@@ -143,6 +174,7 @@ export async function createProduct(params: {
       params.asset_size ?? null,
       params.asset_data ?? null,
       params.asset_file ?? null,
+      params.image_data ?? null,
       params.status ?? 'pending_review',
       params.stock_quantity ?? 0,
     ],
@@ -160,9 +192,9 @@ export async function listProducts(options?: {
   // products. A vendor viewing their own catalog sees every status (draft,
   // pending_review, published, archived) so they can track their submissions.
   const queryText = vendorUserId
-    ? `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
+    ? `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at
        FROM products WHERE vendor_user_id = $1 ORDER BY created_at DESC`
-    : `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
+    : `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at
        FROM products WHERE status = 'published' ORDER BY created_at DESC`;
 
   try {
@@ -189,6 +221,7 @@ export async function listProducts(options?: {
       asset_size: 0,
       asset_data: null,
       asset_file: null,
+      image_data: null,
       status: 'published',
       stock_quantity: 0,
       created_at: product.createdAt,
@@ -223,7 +256,7 @@ export async function getProductByIdForVendor(
   const pool = getPool();
   try {
     const res = await pool.query(
-      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
+      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at
        FROM products
        WHERE id = $1 AND vendor_user_id = $2
        LIMIT 1`,
@@ -251,6 +284,7 @@ export async function updateProduct(
     asset_size?: number | null;
     asset_data?: string | null;
     asset_file?: Buffer | null;
+    image_data?: string | null;
     stock_quantity?: number;
   },
 ): Promise<DbProduct | null> {
@@ -274,6 +308,7 @@ export async function updateProduct(
   pushIfDefined('asset_size', patch.asset_size);
   pushIfDefined('asset_data', patch.asset_data);
   pushIfDefined('asset_file', patch.asset_file);
+  pushIfDefined('image_data', patch.image_data);
   pushIfDefined('stock_quantity', patch.stock_quantity);
 
   if (fields.length === 0) {
@@ -288,7 +323,7 @@ export async function updateProduct(
         .join(', ')}
     WHERE id = $1
       AND vendor_user_id = $2
-    RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
+    RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at
   `;
 
   const values = [productId, vendorUserId, ...fields.map((f) => f.value)];
@@ -304,7 +339,7 @@ export async function getProductById(id: string): Promise<DbProduct | null> {
   const pool = getPool();
   try {
     const res = await pool.query(
-      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at
+      `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at
        FROM products WHERE id = $1 LIMIT 1`,
       [id],
     );
@@ -425,6 +460,42 @@ export async function getOrdersForVendor(vendorUserId: string): Promise<DbOrder[
     [vendorUserId],
   );
   return groupOrderRows(res.rows as Array<Record<string, unknown>>);
+}
+
+export type VendorCustomer = {
+  id: string;
+  name: string | null;
+  email: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string;
+};
+
+export async function listCustomersForVendor(vendorUserId: string): Promise<VendorCustomer[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT u.id, u.name, u.email,
+            COUNT(DISTINCT o.id)::int AS order_count,
+            COALESCE(SUM(oi.unit_price * oi.quantity), 0) AS total_spent,
+            MAX(o.created_at) AS last_order_at
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     JOIN products p ON p.id = oi.product_id
+     JOIN users u ON u.id = o.user_id
+     WHERE p.vendor_user_id = $1
+     GROUP BY u.id, u.name, u.email
+     ORDER BY last_order_at DESC`,
+    [vendorUserId],
+  );
+
+  return (res.rows as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id),
+    name: (row.name as string | null) ?? null,
+    email: String(row.email),
+    orderCount: Number(row.order_count ?? 0),
+    totalSpent: Number(row.total_spent ?? 0),
+    lastOrderAt: String(row.last_order_at),
+  }));
 }
 
 export async function getOrdersForCustomer(userId: string): Promise<DbOrder[]> {
@@ -786,7 +857,7 @@ export async function setProductStatus(
   const res = await pool.query(
     `UPDATE products SET status = $2
      WHERE id = $1
-     RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, status, stock_quantity, created_at`,
+     RETURNING id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at`,
     [productId, status],
   );
   return (res.rows[0] as DbProduct | undefined) ?? null;

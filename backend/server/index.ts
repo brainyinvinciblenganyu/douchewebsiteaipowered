@@ -13,6 +13,7 @@ import messagesRoutes from './routes/messages.routes.js';
 import contactRoutes from './routes/contact.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import adminAuthRoutes from './routes/adminAuth.routes.js';
+import vendorCustomersRoutes from './routes/vendorCustomers.routes.js';
 
 import { productAssetUpload } from './middleware/uploadProductAsset.js';
 import { initDatabase } from './db/init.js';
@@ -98,6 +99,7 @@ app.use('/api/brainy', brainyRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/vendor/customers', vendorCustomersRoutes);
 
 // Error handler for Multer (file upload) errors and centralized errors
 app.use((err: any, _req: Request, res: Response, next: (err?: any) => void) => {

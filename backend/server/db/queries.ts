@@ -2,6 +2,7 @@ export {
   createUser,
   findUserByEmail,
   findUserById,
+  updateUserProfile,
   createSessionRecord,
   revokeSessionRecord,
   type DbUser,

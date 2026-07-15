@@ -12,6 +12,7 @@ interface AuthContextValue {
     password: string,
   ) => Promise<{ success: boolean; message?: string; user?: UserProfile }>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -93,9 +94,14 @@ export function BackendAuthProvider({ children }: { children: React.ReactNode })
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const u = await fetchMe();
+    setUser(u);
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isHydrated, login, logout }),
-    [user, isHydrated, login, logout],
+    () => ({ user, isHydrated, login, logout, refreshUser }),
+    [user, isHydrated, login, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

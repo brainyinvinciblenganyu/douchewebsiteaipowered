@@ -25,6 +25,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret text;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled boolean NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_recovery_codes text[];
 
+-- Profile picture, stored as a base64 data URI (small images only — same
+-- pattern already used for products.asset_data).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_data text;
+
 CREATE TABLE IF NOT EXISTS sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -62,6 +66,10 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity integer NOT NULL DE
 ALTER TABLE products DROP CONSTRAINT IF EXISTS products_status_check;
 ALTER TABLE products ADD CONSTRAINT products_status_check
   CHECK (status IN ('draft', 'pending_review', 'published', 'archived'));
+
+-- Optional static 2D image a vendor can attach alongside (or instead of) the
+-- 3D model, stored as a base64 data URI — same pattern as asset_data.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS image_data text;
 
 CREATE TABLE IF NOT EXISTS user_interactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

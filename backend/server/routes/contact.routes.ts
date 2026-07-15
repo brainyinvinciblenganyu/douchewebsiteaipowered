@@ -48,7 +48,7 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(200).json({ status: 'success' });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: 'Please fill in all fields with a valid email address.' });
     }
     console.error('Failed to process contact form submission', error);
     res.status(500).json({ error: 'Failed to send message' });

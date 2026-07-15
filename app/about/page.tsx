@@ -179,7 +179,7 @@ export default function AboutPage() {
         name: 'Kah Kissingere',
         position: 'CEO • Innovative Tech',
         bio: 'Building immersive commerce experiences with practical product strategy.',
-        img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyoAGem8obilgKKonsw89hAZR32iCbNDSv8R1MAnzWVRvINtxwa0C6_ps&s=10',
+        img: 'https://media.licdn.com/dms/image/v2/D4E03AQEHfKG3XH2i_A/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1684752297980?e=2147483647&v=beta&t=SEVx6NcqfVccsTX1xgFFnPJlnqeAZU2zMxxlpIe_P4o',
       },
       {
         name: 'Nganyu Brandon',
@@ -194,8 +194,8 @@ export default function AboutPage() {
         img: 'https://media.licdn.com/dms/image/v2/C5603AQERR8Zt2l4Dvw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1552562848958?e=2147483647&v=beta&t=bq90-C2riNOw87yK4uOQaioxPiGDCecAcdaV_mUd5Qw',
       },
       {
-        name: 'Beshe Jackson',
-        position: 'Operations Sponsor',
+        name: 'Engr. Beshe Nganyu Jackson',
+        position: 'Building & Construction Specialist • Owner & Co-Founder, ETJKSON Services',
         bio: 'Ensuring quality delivery workflows from planning to shipping.',
         img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyoAGem8obilgKKonsw89hAZR32iCbNDSv8R1MAnzWVRvINtxwa0C6_ps&s=10',
       },

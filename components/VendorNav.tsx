@@ -7,6 +7,7 @@ const tabs = [
   { href: '/vendor/dashboard', label: 'Dashboard', forceBlue: true },
   { href: '/vendor/products', label: 'Products', forceBlue: true },
   { href: '/vendor/orders', label: 'Orders' },
+  { href: '/vendor/customers', label: 'Customers' },
 ];
 
 export default function VendorNav() {

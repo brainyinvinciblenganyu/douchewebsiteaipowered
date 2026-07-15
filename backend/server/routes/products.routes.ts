@@ -198,6 +198,12 @@ router.post('/', async (req: Request, res: Response) => {
             ? null
             : String(payload.asset_data),
       asset_file,
+      image_data:
+        typeof payload.image_data === 'undefined'
+          ? null
+          : payload.image_data === null
+            ? null
+            : String(payload.image_data),
       // New products always start pending admin review — a vendor can't
       // bypass approval by sending status directly in the create payload.
       status: 'pending_review',
@@ -317,6 +323,12 @@ name:
             ? null
             : String(payload.asset_data),
       asset_file,
+      image_data:
+        typeof payload.image_data === 'undefined'
+          ? undefined
+          : payload.image_data === null
+            ? null
+            : String(payload.image_data),
     });
 
     if (!updated) {
