@@ -98,7 +98,7 @@ export default function ProductsPage() {
                         e.preventDefault();
                         e.stopPropagation();
                         const savedCart = localStorage.getItem('douche_cart');
-                        const cartItems: Array<{ id: number; name: string; price: number; model: string; quantity: number }> = savedCart
+                        const cartItems: Array<{ id: string; name: string; price: number; model: string; quantity: number }> = savedCart
                           ? JSON.parse(savedCart)
                           : [];
 

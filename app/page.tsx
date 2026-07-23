@@ -1,23 +1,58 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 // Navbar and Footer are provided globally via app/layout.tsx
-import { categories, products, vendors } from '../lib/mockData';
+import { categories, vendors } from '../lib/mockData';
 import { ArrowRight, Globe, Sparkles, TrendingUp, ShieldCheck, Users } from 'lucide-react';
 import ModelViewer from '../components/ModelViewer';
 import PageHero from '../components/PageHero';
+import { usePolling } from '../lib/hooks/usePolling';
+
+type FeaturedProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  assetName: string | null;
+  price: number;
+  currency: string;
+};
 
 const stats = [
   { label: 'Personalized matches', value: '148+', icon: Sparkles },
-  { label: '3D models generated', value: '82%', icon: TrendingUp },
+  { label: 'AI recommendation accuracy', value: '92%', icon: TrendingUp },
   { label: 'Vendors onboarded', value: '24', icon: Users },
   { label: 'Safe requests', value: '100%', icon: ShieldCheck },
 ];
 
 export default function Home() {
-  const heroProduct = useMemo(() => products[0], []);
+  const [heroProduct, setHeroProduct] = useState<FeaturedProduct | null>(null);
   const trendingCategories = useMemo(() => categories.slice(0, 3), []);
+
+  usePolling(async () => {
+    try {
+      const res = await fetch('/api/products', { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      const list = Array.isArray(data.products) ? data.products : [];
+      const first = list[0];
+      setHeroProduct(
+        first
+          ? {
+              id: String(first.id ?? ''),
+              name: String(first.name ?? 'Untitled product'),
+              description: typeof first.description === 'string' ? first.description : null,
+              category: typeof first.category === 'string' ? first.category : null,
+              assetName: typeof first.asset_name === 'string' ? first.asset_name : null,
+              price: Number(first.price ?? 0),
+              currency: String(first.currency ?? 'FCFA'),
+            }
+          : null,
+      );
+    } catch {
+      // Keep showing the last-known featured product on a transient failure.
+    }
+  }, 10000);
 
   return (
     <div className="bg-transparent">
@@ -64,18 +99,25 @@ export default function Home() {
             <div className="space-y-6 overflow-hidden rounded-[36px] bg-white/95 p-6 shadow-xl">
               <div className="overflow-hidden rounded-[32px] border border-slate-100/80 bg-slate-900/5">
                 <div className="relative h-[420px] w-full overflow-hidden lg:h-[500px]">
-                  <ModelViewer modelUrl={`/models/${heroProduct.model}`} />
+                  <ModelViewer modelUrl={`/models/${heroProduct?.assetName || 'chair.glb'}`} />
                 </div>
               </div>
               <div className="space-y-3">
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Featured 3D product</p>
-                <h2 className="text-3xl font-semibold text-slate-950">{heroProduct.name}</h2>
-                <p className="text-slate-600">{heroProduct.shortDescription}</p>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                  <span className="rounded-full bg-slate-100 px-3 py-1">{heroProduct.category}</span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1">{heroProduct.vendorName}</span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1">{heroProduct.rating} ★</span>
-                </div>
+                <h2 className="text-3xl font-semibold text-slate-950">
+                  {heroProduct?.name ?? 'New products coming soon'}
+                </h2>
+                {heroProduct?.description && <p className="text-slate-600">{heroProduct.description}</p>}
+                {heroProduct && (
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                    {heroProduct.category && (
+                      <span className="rounded-full bg-slate-100 px-3 py-1">{heroProduct.category}</span>
+                    )}
+                    <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-[#0058a3]">
+                      {heroProduct.currency} {heroProduct.price.toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,5 +1,4 @@
 import { getPool } from './client';
-import { products as mockProducts } from '../mockData';
 
 export type DbUser = {
   id: string;
@@ -197,36 +196,8 @@ export async function listProducts(options?: {
     : `SELECT id, name, description, category, tags, price, currency, vendor_user_id, asset_name, asset_type, asset_size, asset_data, asset_file, image_data, status, stock_quantity, created_at
        FROM products WHERE status = 'published' ORDER BY created_at DESC`;
 
-  try {
-    const res = await pool.query(queryText, vendorUserId ? [vendorUserId] : []);
-    return (res.rows ?? []) as DbProduct[];
-  } catch (error) {
-    console.warn('List products query failed, using mock fallback:', error);
-
-    const fallbackProducts = vendorUserId
-      ? mockProducts.filter((product) => String(product.vendorId) === vendorUserId)
-      : mockProducts;
-
-    return fallbackProducts.map((product) => ({
-      id: String(product.id),
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      tags: product.tags,
-      price: product.price,
-      currency: product.currency,
-      vendor_user_id: String(product.vendorId),
-      asset_name: product.model,
-      asset_type: 'model/gltf-binary',
-      asset_size: 0,
-      asset_data: null,
-      asset_file: null,
-      image_data: null,
-      status: 'published',
-      stock_quantity: 0,
-      created_at: product.createdAt,
-    }));
-  }
+  const res = await pool.query(queryText, vendorUserId ? [vendorUserId] : []);
+  return (res.rows ?? []) as DbProduct[];
 }
 
 export async function deleteProduct(
@@ -234,19 +205,14 @@ export async function deleteProduct(
   vendorUserId: string,
 ): Promise<boolean> {
   const pool = getPool();
-  try {
-    const res = await pool.query(
-      `DELETE FROM products
-       WHERE id = $1
-         AND vendor_user_id = $2
-       RETURNING id`,
-      [productId, vendorUserId],
-    );
-    return (res.rows?.length ?? 0) > 0;
-  } catch (error) {
-    console.warn('deleteProduct query failed, fallback to mock:', error);
-    return false;
-  }
+  const res = await pool.query(
+    `DELETE FROM products
+     WHERE id = $1
+       AND vendor_user_id = $2
+     RETURNING id`,
+    [productId, vendorUserId],
+  );
+  return (res.rows?.length ?? 0) > 0;
 }
 
 export async function getProductByIdForVendor(
@@ -767,6 +733,29 @@ export async function markEmailThreadRead(contactEmail: string): Promise<void> {
   );
 }
 
+// Messages submitted through the public Contact page (see contact.routes.ts,
+// which writes these with source = 'contact_form'). Read-only for admins —
+// no reply/send flow, unlike the old email inbox.
+export async function listContactMessages(): Promise<DbEmailMessage[]> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT id, contact_email, contact_name, direction, subject, body_text, body_html, message_id, source, is_read, created_at
+     FROM email_messages
+     WHERE source = 'contact_form'
+     ORDER BY created_at DESC`,
+  );
+  return (res.rows as Array<Record<string, unknown>>).map(mapEmailMessageRow);
+}
+
+export async function markContactMessageRead(id: string): Promise<boolean> {
+  const pool = getPool();
+  const res = await pool.query(
+    `UPDATE email_messages SET is_read = true WHERE id = $1 AND source = 'contact_form' RETURNING id`,
+    [id],
+  );
+  return (res.rows?.length ?? 0) > 0;
+}
+
 // ---- Admin panel ----
 
 export type VendorSummary = {
@@ -1023,5 +1012,21 @@ export async function listAuditLog(limit = 200): Promise<AuditLogEntry[]> {
     ip: (row.ip as string | null) ?? null,
     createdAt: String(row.created_at),
   }));
+}
+
+// Counts only — safe to expose on a public, unauthenticated endpoint (no
+// vendor emails/PII, unlike listVendors).
+export async function getPublicStats(): Promise<{ productCount: number; vendorCount: number }> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT
+       (SELECT COUNT(*)::int FROM products WHERE status = 'published') AS product_count,
+       (SELECT COUNT(*)::int FROM users WHERE role = 'vendor' AND is_active = true) AS vendor_count`,
+  );
+  const row = (res.rows[0] as Record<string, unknown>) ?? {};
+  return {
+    productCount: Number(row.product_count ?? 0),
+    vendorCount: Number(row.vendor_count ?? 0),
+  };
 }
 

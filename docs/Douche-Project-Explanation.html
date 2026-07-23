@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="dcterms.date" content="2026-07-23" />
+  <title>Douche Project Explanation</title>
+  <style>
+
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css">body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 880px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.55; }
+h1 { font-size: 26px; border-bottom: 3px solid #0058a3; padding-bottom: 10px; margin-top: 40px; }
+h2 { font-size: 20px; color: #0058a3; margin-top: 34px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+h3 { font-size: 16px; margin-top: 22px; }
+code { background: #f2f4f7; padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+pre { background: #0f1720; color: #d6e2f0; padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+pre code { background: none; color: inherit; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #d1d5db; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: #eef4fb; }
+blockquote { border-left: 3px solid #0058a3; margin-left: 0; padding-left: 14px; color: #444; }
+hr { border: none; border-top: 1px solid #ddd; margin: 30px 0; }
+@media print {
+h1, h2 { page-break-after: avoid; }
+table, pre { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Douche Project Explanation</h1>
+<p class="subtitle">System Explanation &amp; Final-Year Defense
+Guide</p>
+<p class="date">2026-07-23</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#douche-ai-powered-3d-e-commerce-platform" id="toc-douche-ai-powered-3d-e-commerce-platform">Douche — AI-Powered 3D
+E-Commerce Platform</a>
+<ul>
+<li><a href="#system-explanation-final-year-defense-guide" id="toc-system-explanation-final-year-defense-guide">System Explanation
+&amp; Final-Year Defense Guide</a></li>
+<li><a href="#high-level-architecture" id="toc-high-level-architecture">1. High-Level Architecture</a></li>
+<li><a href="#technology-stack" id="toc-technology-stack">2. Technology
+Stack</a></li>
+<li><a href="#authentication-authorization-model" id="toc-authentication-authorization-model">3. Authentication &amp;
+Authorization Model</a></li>
+<li><a href="#database-schema-postgresql" id="toc-database-schema-postgresql">4. Database Schema
+(PostgreSQL)</a></li>
+<li><a href="#full-api-route-reference" id="toc-full-api-route-reference">5. Full API Route Reference</a></li>
+<li><a href="#how-messaging-actually-works-three-genuinely-separate-systems" id="toc-how-messaging-actually-works-three-genuinely-separate-systems">6.
+How “Messaging” Actually Works — three genuinely separate
+systems</a></li>
+<li><a href="#brainy-the-ai-chat-assistant" id="toc-brainy-the-ai-chat-assistant">7. Brainy — the AI Chat
+Assistant</a></li>
+<li><a href="#recommendation-engine-the-core-ai-feature-in-detail" id="toc-recommendation-engine-the-core-ai-feature-in-detail">8.
+Recommendation Engine — the core “AI” feature, in detail</a></li>
+<li><a href="#why-gemini-api-specifically-and-why-its-needed" id="toc-why-gemini-api-specifically-and-why-its-needed">9. Why Gemini
+API Specifically, and Why It’s Needed</a></li>
+<li><a href="#real-time-features-how-live-data-actually-works" id="toc-real-time-features-how-live-data-actually-works">10. Real-Time
+Features — How “Live” Data Actually Works</a></li>
+<li><a href="#testing-an-honest-account" id="toc-testing-an-honest-account">11. Testing — An Honest
+Account</a></li>
+<li><a href="#anticipated-defense-questions-with-concise-answers" id="toc-anticipated-defense-questions-with-concise-answers">12.
+Anticipated Defense Questions (with concise answers)</a></li>
+<li><a href="#suggested-demo-flow-for-defense-day" id="toc-suggested-demo-flow-for-defense-day">13. Suggested Demo Flow for
+Defense Day</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="douche-ai-powered-3d-e-commerce-platform">Douche — AI-Powered 3D
+E-Commerce Platform</h1>
+<h2 id="system-explanation-final-year-defense-guide">System Explanation
+&amp; Final-Year Defense Guide</h2>
+<hr />
+<h2 id="high-level-architecture">1. High-Level Architecture</h2>
+<p>The system is a <strong>three-tier architecture</strong> with two
+separate Node.js runtimes talking over HTTP:</p>
+<pre><code>Browser (React / Next.js App Router, client components)
+        |  fetch() with credentials: &#39;include&#39;
+        v
+Next.js API routes  (app/api/**/route.ts)  -- runs on the Next.js server
+        |  proxies most requests over plain HTTP to...
+        v
+Express backend  (backend/server/index.ts, separate process, port 3001)
+        |  raw parameterized SQL via `pg`
+        v
+PostgreSQL (Neon serverless Postgres)
+        |
+        +-- Google Gemini API (REST, called directly with fetch -- no SDK)</code></pre>
+<p><strong>Why two servers instead of one?</strong> The Next.js app
+(<code>app/api/*</code>) is mostly a thin <strong>proxy layer</strong>:
+each route forwards the request (with cookies) to the real Express
+backend at <code>BACKEND_API_BASE_URL</code> and passes the JSON
+straight through. The actual business logic — auth, database queries,
+recommendation scoring, Gemini calls — all lives in the Express backend
+(<code>backend/server/</code>). This separation means the “brain” of the
+app (backend) can be deployed, restarted, or scaled independently of the
+Next.js frontend, and it’s the classic pattern for a Next.js frontend
+sitting in front of a hand-rolled REST API rather than using Next.js
+server actions for everything.</p>
+<hr />
+<h2 id="technology-stack">2. Technology Stack</h2>
+<p><strong>Frontend</strong></p>
+<ul>
+<li><strong>Next.js 16</strong> (App Router, <code>app/</code>
+directory), React 19, TypeScript</li>
+<li><strong>Tailwind CSS 4</strong> for styling</li>
+<li><strong>Framer Motion</strong> for animations (recommendations page
+transitions)</li>
+<li><strong>react-three-fiber + <span class="citation" data-cites="react-three/drei">@react-three/drei</span></strong> —
+renders <code>.glb</code> 3D models in the browser
+(<code>ModelViewer.tsx</code>), used on the homepage,
+<code>/products</code>, <code>/product/[id]</code>, and
+<code>/recommendations</code></li>
+<li><strong>lucide-react</strong> for icons</li>
+</ul>
+<p><strong>Backend (separate Express app in
+<code>backend/</code>)</strong></p>
+<ul>
+<li><strong>Express 4</strong> + TypeScript, run directly with
+<strong>tsx</strong> (no build step in dev —
+<code>tsx server/index.ts</code>)</li>
+<li><strong>pg</strong> (node-postgres) — raw SQL, no ORM
+(Prisma/TypeORM are not used anywhere)</li>
+<li><strong>express-rate-limit</strong> — brute-force protection on
+admin login</li>
+<li><strong>otplib</strong> + <strong>qrcode</strong> — TOTP two-factor
+authentication for admins</li>
+<li><strong>nodemailer</strong> (SMTP send) and
+<strong>imapflow</strong> + <strong>mailparser</strong> (IMAP receive) —
+for the vendor-to-customer email feature</li>
+<li><strong>zod</strong> — request body validation/schemas</li>
+<li><strong>cookie-parser</strong>, <strong>cors</strong></li>
+</ul>
+<p><strong>Database</strong></p>
+<ul>
+<li><strong>PostgreSQL</strong>, hosted on <strong>Neon</strong>
+(serverless Postgres). Schema is plain SQL
+(<code>backend/server/db/schema.sql</code>), re-run idempotently
+(<code>CREATE TABLE IF NOT EXISTS</code> /
+<code>ADD COLUMN IF NOT EXISTS</code>) on every backend boot via
+<code>initDatabase()</code> — a lightweight, hand-rolled substitute for
+a formal migration tool like Prisma Migrate or Knex.</li>
+<li>A fallback <strong>in-memory store</strong>
+(<code>InMemoryPool</code> in <code>lib/db/client.ts</code>) is used
+only when <code>DATABASE_URL</code> isn’t set at all (local dev without
+a database).</li>
+</ul>
+<p><strong>AI</strong></p>
+<ul>
+<li><strong>Google Gemini</strong> (<code>gemini-flash-latest</code>
+model), called via <strong>raw REST <code>fetch()</code></strong> to
+<code>generativelanguage.googleapis.com</code> — not through the
+official <code>@google/generative-ai</code> SDK, even though that
+package is listed in <code>package.json</code>/lockfile. The actual
+calls are hand-written <code>fetch()</code> requests for both streaming
+(chat) and non-streaming (recommendation re-ranking) use cases.</li>
+</ul>
+<p><strong>Auth</strong></p>
+<ul>
+<li>Home-rolled, HMAC-SHA256-signed session tokens (not a JWT library —
+a similar concept, simpler format:
+<code>base64url(payload).base64url(HMAC-SHA256(payload))</code>), stored
+in an <code>httpOnly</code> cookie.</li>
+<li>Passwords hashed with <strong>PBKDF2</strong> (Node’s built-in
+<code>crypto.pbkdf2</code>, 210,000 iterations, SHA-256), not
+bcrypt/argon2 — hand-rolled with Node’s crypto module, no external
+dependency.</li>
+</ul>
+<hr />
+<h2 id="authentication-authorization-model">3. Authentication &amp;
+Authorization Model</h2>
+<p>There are <strong>three roles</strong>: <code>customer</code>,
+<code>vendor</code>, <code>admin</code> — enforced by a DB check
+constraint (<code>users_role_check</code>).</p>
+<ul>
+<li><strong>Customer/vendor login</strong>
+(<code>/api/auth/login</code>, <code>/api/auth/register</code>):
+standard email+password. Public registration can only ever create
+<code>customer</code> or <code>vendor</code> accounts
+(<code>registerSchema</code> restricts <code>role</code> to
+<code>z.enum([&#39;customer&#39;, &#39;vendor&#39;])</code>) — there is <strong>no
+public path to create an admin account</strong>.</li>
+<li><strong>Admin accounts</strong> can only be created by someone with
+direct server/database access, running
+<code>npx tsx tools/create_admin_user.ts &lt;email&gt; &lt;password&gt; [name]</code>
+— a CLI script that hashes the password with the same PBKDF2 function
+and inserts a row with <code>role = &#39;admin&#39;</code> directly.</li>
+<li><strong>Admin login</strong> lives at a deliberately obscure,
+non-guessable route: <code>/ops-7f3k2</code> (not linked from anywhere
+in the public site nav). It’s a two-step flow:
+<ol type="1">
+<li>Email + password -&gt; if correct and the account has no TOTP secret
+yet, the server generates one, returns a QR code (rendered with the
+<code>qrcode</code> package) and a short-lived signed “setup token” —
+nothing is written to the database yet.</li>
+<li>The admin scans the QR with Google Authenticator (or any TOTP app)
+and submits the 6-digit code back to
+<code>/admin-login/confirm-2fa-setup</code>. Only once that code
+verifies does the server persist the TOTP secret and issue a set of
+one-time recovery codes.</li>
+<li>On every subsequent login, email + password + a valid 6-digit code
+(with a +/-30s clock-skew tolerance) are all required. A recovery code
+can be used instead of the TOTP code if the authenticator device is lost
+(each recovery code works once, stored hashed).</li>
+</ol></li>
+<li><strong><code>requireAdmin</code> middleware</strong>: every admin
+API route is gated by this. On <strong>every single request</strong> it
+re-verifies the session against the live database (not just the signed
+cookie) — so if an admin is deleted or demoted, their still-valid
+session token stops working immediately. Any failure returns a generic
+<code>404 Not found</code> (not <code>401</code>/<code>403</code>) —
+unauthenticated admin routes look like they don’t exist at all.</li>
+<li><strong><code>requireFreshAdminSession</code> middleware</strong>:
+layered on top of <code>requireAdmin</code> for <em>mutating</em>
+actions (suspend a vendor, approve/reject a product). If the admin’s
+last full login (password+TOTP) was more than 15 minutes ago, the
+request is rejected with <code>{ reauthRequired: true }</code>, and the
+frontend automatically logs them out and forces a fresh login — a
+“step-up auth” pattern.</li>
+<li><strong>Rate limiting + audit log</strong>:
+<code>express-rate-limit</code> throttles the login endpoint; every
+login attempt (success or failure) is recorded in
+<code>admin_login_attempts</code> (IP + identifier); every sensitive
+admin action is written to <code>admin_audit_log</code> with the admin’s
+id, action name, target, IP, and timestamp.</li>
+<li><strong>CORS</strong>: the backend only allows credentialed requests
+from an explicit allow-list (<code>ALLOWED_ORIGINS</code> env var +
+<code>localhost:3000</code> for dev) — it does <strong>not</strong>
+reflect arbitrary origins.</li>
+</ul>
+<hr />
+<h2 id="database-schema-postgresql">4. Database Schema (PostgreSQL)</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td>customers, vendors, admins — one table, <code>role</code> column
+discriminates. Holds password hash, TOTP secret/recovery codes (admin
+only), profile fields.</td>
+</tr>
+<tr>
+<td><code>sessions</code></td>
+<td>optional DB-backed session records (for revocation tracking)
+alongside the signed cookie.</td>
+</tr>
+<tr>
+<td><code>products</code></td>
+<td>vendor listings — name, price, category, tags, <code>status</code>
+(<code>draft</code> -&gt; <code>pending_review</code> -&gt;
+<code>published</code>/<code>archived</code>), and the 3D asset
+(<code>asset_file bytea</code> / <code>asset_data</code> base64 /
+<code>asset_name</code>), plus an optional 2D
+<code>image_data</code>.</td>
+</tr>
+<tr>
+<td><code>user_interactions</code></td>
+<td>the event log that powers recommendations: <code>view</code>,
+<code>cart_add</code>, <code>wishlist_add</code>,
+<code>wishlist_remove</code>, <code>rate</code>, <code>search</code>,
+<code>purchase</code>.</td>
+</tr>
+<tr>
+<td><code>recommendation_cache</code></td>
+<td>per-user cached recommendation results, keyed by a SHA-256 hash of
+their profile, with a 30-minute TTL.</td>
+</tr>
+<tr>
+<td><code>orders</code> / <code>order_items</code></td>
+<td>order history and line items.</td>
+</tr>
+<tr>
+<td><code>product_reviews</code></td>
+<td>1-5 star ratings + text, one per (product, user).</td>
+</tr>
+<tr>
+<td><code>email_messages</code></td>
+<td>every inbound/outbound message — contact-form submissions
+(<code>source = &#39;contact_form&#39;</code>), vendor replies, and
+(historically) synced Gmail messages.</td>
+</tr>
+<tr>
+<td><code>admin_audit_log</code></td>
+<td>every sensitive admin action.</td>
+</tr>
+<tr>
+<td><code>admin_login_attempts</code></td>
+<td>DB-backed (not in-memory) login attempt log, so rate limiting
+survives a server restart.</td>
+</tr>
+</tbody>
+</table>
+<p>All queries are <strong>raw parameterized SQL</strong>
+(<code>pool.query(text, [params])</code>) — no ORM. Parameterization is
+what prevents SQL injection.</p>
+<hr />
+<h2 id="full-api-route-reference">5. Full API Route Reference</h2>
+<h3 id="next.js-routes-appapi-thin-proxies-to-the-express-backend-forwarding-cookies">Next.js
+routes (<code>app/api/**</code>) — thin proxies to the Express backend,
+forwarding cookies</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Route</th>
+<th>Method(s)</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/auth/register</code>, <code>/login</code>,
+<code>/logout</code>, <code>/me</code></td>
+<td>POST/GET</td>
+<td>customer/vendor auth</td>
+</tr>
+<tr>
+<td><code>/api/products</code>, <code>/api/products/[id]</code>,
+<code>/api/products/[id]/reviews</code></td>
+<td>GET/POST/PUT/DELETE</td>
+<td>product catalog CRUD + reviews</td>
+</tr>
+<tr>
+<td><code>/api/cart/items</code></td>
+<td>GET/POST</td>
+<td>cart</td>
+</tr>
+<tr>
+<td><code>/api/orders</code>, <code>/api/orders/[id]/cancel</code></td>
+<td>GET/POST/PATCH</td>
+<td>orders</td>
+</tr>
+<tr>
+<td><code>/api/checkout</code></td>
+<td>POST</td>
+<td>checkout</td>
+</tr>
+<tr>
+<td><code>/api/recommendations</code>,
+<code>/api/recommendations/track</code></td>
+<td>GET/POST</td>
+<td>fetch personalized recs, log an interaction event</td>
+</tr>
+<tr>
+<td><code>/api/brainy/chat</code></td>
+<td>POST</td>
+<td>streams the Brainy chat reply (SSE passthrough)</td>
+</tr>
+<tr>
+<td><code>/api/contact</code></td>
+<td>POST</td>
+<td>public contact form</td>
+</tr>
+<tr>
+<td><code>/api/stats</code></td>
+<td>GET</td>
+<td>public live counts (published products, active vendors)</td>
+</tr>
+<tr>
+<td><code>/api/trending</code></td>
+<td>GET</td>
+<td>legacy — uses an old local SQLite-style store, not part of the live
+Postgres system</td>
+</tr>
+<tr>
+<td><code>/api/vendor/customers</code>,
+<code>/api/vendor/customers/message</code></td>
+<td>GET/POST</td>
+<td>vendor’s customer list + email-a-customer</td>
+</tr>
+<tr>
+<td><code>/api/admin/login</code>, <code>/logout</code>,
+<code>/confirm-2fa-setup</code>, <code>/session</code></td>
+<td>POST/GET</td>
+<td>admin auth flow</td>
+</tr>
+<tr>
+<td><code>/api/admin/vendors</code>,
+<code>/api/admin/vendors/[id]/status</code></td>
+<td>GET/PATCH</td>
+<td>admin vendor management</td>
+</tr>
+<tr>
+<td><code>/api/admin/transactions</code></td>
+<td>GET</td>
+<td>admin order overview</td>
+</tr>
+<tr>
+<td><code>/api/admin/products/pending</code>,
+<code>/[id]/approve</code>, <code>/[id]/reject</code></td>
+<td>GET/PATCH</td>
+<td>admin product moderation queue</td>
+</tr>
+<tr>
+<td><code>/api/admin/contact-messages</code>,
+<code>/[id]/read</code></td>
+<td>GET/PATCH</td>
+<td>admin view of contact-form submissions</td>
+</tr>
+<tr>
+<td><code>/api/admin/audit-log</code></td>
+<td>GET</td>
+<td>admin activity log</td>
+</tr>
+<tr>
+<td><code>/api/messages/*</code></td>
+<td>—</td>
+<td>legacy/inactive proxy, superseded by
+<code>/api/admin/contact-messages</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="express-backend-routes-backendserverroutes-where-the-real-logic-lives">Express
+backend routes (<code>backend/server/routes/*</code>) — where the real
+logic lives</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>File</th>
+<th>Mounted at</th>
+<th>Key endpoints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auth/index.ts</code></td>
+<td><code>/api/auth</code></td>
+<td>register, login, me, update profile, logout</td>
+</tr>
+<tr>
+<td><code>adminAuth.routes.ts</code></td>
+<td><code>/api/auth</code></td>
+<td><code>/admin-login</code>,
+<code>/admin-login/confirm-2fa-setup</code></td>
+</tr>
+<tr>
+<td><code>admin.routes.ts</code></td>
+<td><code>/api/admin</code></td>
+<td>vendors, transactions, product approvals, audit log, contact
+messages — all behind <code>requireAdmin</code></td>
+</tr>
+<tr>
+<td><code>products.routes.ts</code></td>
+<td><code>/api/products</code></td>
+<td>vendor product CRUD (with Multer file upload for the 3D asset),
+public listing/reviews</td>
+</tr>
+<tr>
+<td><code>orders.routes.ts</code></td>
+<td><code>/api/orders</code></td>
+<td>order creation, cancellation</td>
+</tr>
+<tr>
+<td><code>recommendation.routes.ts</code></td>
+<td><code>/api/recommendations</code></td>
+<td>GET recommendations, POST track interaction</td>
+</tr>
+<tr>
+<td><code>brainy.routes.ts</code></td>
+<td><code>/api/brainy</code></td>
+<td>POST <code>/chat</code> — SSE stream</td>
+</tr>
+<tr>
+<td><code>contact.routes.ts</code></td>
+<td><code>/api/contact</code></td>
+<td>contact form -&gt; stores message + sends notification email</td>
+</tr>
+<tr>
+<td><code>vendorCustomers.routes.ts</code></td>
+<td><code>/api/vendor/customers</code></td>
+<td>vendor’s customer list, send an email to a customer</td>
+</tr>
+<tr>
+<td>(inline in <code>index.ts</code>)</td>
+<td><code>/api/stats</code></td>
+<td>public product/vendor counts</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="how-messaging-actually-works-three-genuinely-separate-systems">6.
+How “Messaging” Actually Works — three genuinely separate systems</h2>
+<ol type="1">
+<li><p><strong>Contact form -&gt; Admin (“Contact Messages”)</strong>: A
+visitor submits <code>/contact</code>. The backend
+(<code>contact.routes.ts</code>) does two things in parallel: (a)
+<strong>always</strong> inserts a row into <code>email_messages</code>
+with <code>source: &#39;contact_form&#39;</code>,
+<code>direction: &#39;inbound&#39;</code> — this is what makes it show up in the
+admin panel, with <strong>no dependency on email being configured at
+all</strong>; (b) <em>if</em> SMTP credentials
+(<code>GMAIL_USER</code>/<code>GMAIL_APP_PASSWORD</code>) are set, it
+<em>also</em> fires an email notification to the admin and an auto-reply
+to the customer — best-effort, and failure here doesn’t stop the message
+from being recorded. The admin views these on
+<code>/ops-7f3k2/contact-messages</code>, which polls
+<code>GET /api/admin/contact-messages</code> every 8 seconds and lets
+the admin mark a message read.</p></li>
+<li><p><strong>Vendor -&gt; Customer email</strong>: A vendor can email
+one of their customers directly (<code>vendorCustomers.routes.ts</code>,
+<code>POST /api/vendor/customers/message</code>) via
+<code>nodemailer</code> SMTP. This requires
+<code>GMAIL_USER</code>/<code>GMAIL_APP_PASSWORD</code> — if not
+configured, it returns a clear <code>503</code> rather than failing
+silently.</p></li>
+<li><p><strong>Brainy AI chat</strong>: not “messaging” in the email
+sense — it’s a real-time, streamed conversation over HTTP (see Section
+7). No message is stored in <code>email_messages</code>; chat history
+only lives in the browser’s React state for that session.</p></li>
+</ol>
+<p><em>(A fourth, older system — a full two-way Gmail inbox with IMAP
+sync and reply-from-admin-panel — existed earlier but was removed from
+the admin panel because outbound sending wasn’t reliable; the
+contact-form-to-database path above replaced it and doesn’t share that
+dependency.)</em></p>
+<hr />
+<h2 id="brainy-the-ai-chat-assistant">7. Brainy — the AI Chat
+Assistant</h2>
+<p><strong>Where it lives:</strong> a floating launcher button
+(<code>components/Brainy.tsx</code>) on every public page, which
+navigates to a <strong>dedicated full page</strong>, <code>/chat</code>
+(<code>app/chat/page.tsx</code>).</p>
+<p><strong>How a message flows, end to end:</strong></p>
+<ol type="1">
+<li>Browser POSTs <code>{ message, history }</code> to
+<code>/api/brainy/chat</code> (Next.js proxy) -&gt; forwarded to the
+Express backend’s <code>POST /api/brainy/chat</code>.</li>
+<li>The backend reads the session cookie (if any) and loads the real
+user record.</li>
+<li><strong><code>buildBrainyContext(user)</code></strong> assembles a
+JSON object of real facts from Postgres, different per role:
+<ul>
+<li><strong>Guest</strong>: total product count, category list, a sample
+of 15 products.</li>
+<li><strong>Vendor</strong>: their own product count/catalog, category
+breakdown, total orders, total revenue, 5 most recent orders.</li>
+<li><strong>Customer</strong>: favorite categories, recent searches,
+wishlist count, shopping frequency, average spend, 5 most recent orders,
+and their <strong>top 6 live personalized recommendations</strong> (same
+engine as <code>/recommendations</code>, including each one’s
+“reason”).</li>
+</ul></li>
+<li><strong><code>buildBrainyPrompt(...)</code></strong> wraps that
+context, the last 6 turns of conversation history, and role-specific
+instructions into one prompt, explicitly telling the model: <em>“never
+invent orders/products/numbers not present here.”</em></li>
+<li>If <code>GEMINI_API_KEY</code> is set, the backend calls Gemini’s
+<strong>streaming</strong> endpoint
+(<code>streamGenerateContent?alt=sse</code>) and re-yields each text
+chunk to the browser as it arrives, using Server-Sent Events
+(<code>Content-Type: text/event-stream</code>). The browser reads the
+response body as a stream and appends each chunk to the assistant’s
+message as it arrives — this is what makes it feel real-time.</li>
+<li>If <code>GEMINI_API_KEY</code> is <strong>not</strong> set,
+<code>buildRuleBasedReply(...)</code> generates a keyword-matched canned
+response from the same real context facts — Brainy is never fully
+broken, it just loses free-form conversational ability.</li>
+</ol>
+<p><strong>Why this is fast / low-data:</strong> streaming means the
+first words of the reply reach the browser in a fraction of a second,
+and each SSE chunk is a tiny JSON object rather than re-sending the
+whole conversation.</p>
+<hr />
+<h2 id="recommendation-engine-the-core-ai-feature-in-detail">8.
+Recommendation Engine — the core “AI” feature, in detail</h2>
+<p><strong>Step 1 — Build a shopping profile
+(<code>profile.service.ts</code>)</strong></p>
+<p>For a logged-in customer, <code>getUserProfile(userId)</code> pulls
+their last 200 rows from <code>user_interactions</code> and derives:
+favorite categories &amp; “favorite brands” (vendor IDs) ranked by
+frequency; recent search terms, recently-viewed product IDs, wishlist
+IDs; recent cart adds (approximated — there’s no
+<code>cart_remove</code> event type); purchase history IDs; average
+spending and a min/max preferred price range; a
+<code>shoppingFrequency</code> bucket
+(<code>new</code>/<code>rare</code>/<code>moderate</code>/<code>frequent</code>)
+based on distinct active days in the last 30 days.</p>
+<p><strong>Step 2 — Score every published product against that profile
+(<code>scoring.service.ts</code> +
+<code>ruleEngine.service.ts</code>)</strong></p>
+<p><code>rankAndSelectCandidates()</code> runs the entire published
+catalog through ten independent scoring functions and sums the
+points:</p>
+<ul>
+<li><code>scoreSearchMatch</code> — matches recent search terms against
+name/category/tags/description (up to 40 pts)</li>
+<li><code>scoreCategoryMatch</code> — is this the user’s #1 or #2
+favorite category? (40 / 20 / 10 pts)</li>
+<li><strong><code>scorePurchaseHistory</code></strong> — the literal
+“you bought a table, so we recommend a chair” mechanism: a hardcoded
+<code>COMPLEMENTARY_MAP</code>
+(e.g. <code>Furniture -&gt; [Furniture, 3D Tech]</code>) checks whether
+this candidate’s category is complementary to something the user already
+bought, awarding points (up to 35) if so. Already-owned products are
+penalized (-15).</li>
+<li><code>scoreRecentlyViewed</code> — boosts items looked at recently,
+or same-category items</li>
+<li><code>scoreWishlist</code> — flat +30 if on their wishlist</li>
+<li><code>scoreCartCompatibility</code> — complementary-category boost
+for the cart’s contents; -50 if already in cart</li>
+<li><code>scoreBrandPreference</code> — small boost for vendors bought
+from before</li>
+<li><code>scoreBudgetMatch</code> — rewards products inside their
+observed price range or close to average spend</li>
+<li><code>scoreTrending</code> — combines real average star rating with
+a global interaction-count trend</li>
+<li><strong>Collaborative filtering</strong>
+(<code>getCollaborativeCandidates</code>) — genuine item-based
+collaborative filtering via SQL: find products this user engaged with
+-&gt; find other users who engaged with any of the same products -&gt;
+count how often those other users’ <em>other</em> products co-occur
+-&gt; bonus score, capped at 25 points.</li>
+</ul>
+<p>All ten scores are summed into one <code>score</code> per product,
+sorted descending.</p>
+<p><strong>Step 3 — Gemini re-ranks the top 20 and writes the human
+explanation (<code>gemini.service.ts</code>)</strong></p>
+<p>The top 20 rule-scored candidates (id, name, category, price, score,
+description, tags) plus the full shopping profile are sent to Gemini in
+one prompt, instructed to: pick up to 4, never invent a product not in
+the candidate list, and write a short natural-language “reason” per
+pick. Gemini returns strict JSON
+(<code>{ recommendations: [{ id, reason }] }</code>), matched back
+against the scored candidates by id.</p>
+<p><strong>Step 4 — Fallback chain, so it never breaks</strong></p>
+<ul>
+<li>No <code>GEMINI_API_KEY</code>, or the call fails -&gt; fall back to
+the top 4 rule-scored candidates, with a rule-based reason generator
+(<code>defaultReasonFor</code>) that picks a canned sentence matching
+<em>why</em> each one scored highly (e.g. <em>“Frequently bought
+together with your purchase history.”</em>).</li>
+<li>If the entire pipeline throws -&gt; fall back further, to the first
+4 published products with a generic “Trending product” reason.</li>
+<li>Successful results are cached per-user for 30 minutes, keyed by a
+hash of the profile.</li>
+</ul>
+<p><strong>On the page (<code>/recommendations</code>)</strong>: each
+card shows the product’s real 3D model preview, price, a “Strong match /
+Good match / Worth a look” badge derived from the numeric score, and the
+reason text — plus an <code>isAiPowered</code> banner that’s only true
+when Gemini actually produced the ranking.</p>
+<hr />
+<h2 id="why-gemini-api-specifically-and-why-its-needed">9. Why Gemini
+API Specifically, and Why It’s Needed</h2>
+<ul>
+<li><strong>Natural-language explanation generation</strong>: the rule
+engine can compute <em>that</em> a product scores highly and roughly
+<em>why</em>, but turning that into a fluent, varied sentence for every
+product/user combination is exactly what an LLM is suited for.</li>
+<li><strong>Re-ranking with soft judgment</strong>: the rule engine is a
+rigid point system; Gemini can use holistic judgment across the whole
+candidate set in a way that’s hard to encode as more <code>if</code>
+statements.</li>
+<li><strong>Conversational chat (Brainy)</strong>: free-form Q&amp;A is
+not something a rule-based keyword matcher can handle well — the
+clearest case where a general-purpose LLM is genuinely necessary.</li>
+<li><strong>It’s optional, not load-bearing</strong>: both features work
+— in a reduced form — with zero Gemini calls, an intentional design
+choice so a missing/expired API key or an outage degrades the app
+gracefully instead of breaking it.</li>
+<li><strong>Cost/latency control</strong>: only the top 20 pre-filtered
+candidates (not the whole catalog) are ever sent to Gemini, and only a
+handful of scalar fields per candidate.</li>
+</ul>
+<hr />
+<h2 id="real-time-features-how-live-data-actually-works">10. Real-Time
+Features — How “Live” Data Actually Works</h2>
+<p>There is <strong>no WebSocket server and no Socket.IO</strong>
+anywhere in this codebase. “Real-time” is achieved two different
+ways:</p>
+<ol type="1">
+<li><strong>Short-interval polling</strong>
+(<code>lib/hooks/usePolling.ts</code>): calls a fetch function
+immediately, then again every N seconds via <code>setInterval</code>,
+pausing while the browser tab is in the background. Powers: the admin
+dashboard (8-10s intervals), the homepage featured product (10s), and
+the About page’s live counts (30s).</li>
+<li><strong>True streaming</strong> for Brainy chat, via Server-Sent
+Events (Section 7).</li>
+</ol>
+<p>Polling was the right tradeoff over WebSockets: no persistent
+connection/socket server needed, the data doesn’t change fast enough for
+a few seconds of staleness to matter, and it’s trivially easy to reason
+about compared to managing socket rooms/reconnection logic.</p>
+<hr />
+<h2 id="testing-an-honest-account">11. Testing — An Honest Account</h2>
+<p>There is <strong>no automated test suite</strong> — no Jest, Vitest,
+Playwright, or Cypress config, no <code>*.test.ts</code> files, no
+<code>test</code> script in either <code>package.json</code>. This
+should be stated plainly if asked, rather than overstated.</p>
+<p><strong>What was actually done, throughout development:</strong></p>
+<ol type="1">
+<li><strong>Static type-checking</strong> —
+<code>npx tsc --noEmit</code> run after every change, catching type
+mismatches, incorrect API shapes, and missing fields before
+runtime.</li>
+<li><strong>Production build verification</strong> —
+<code>npm run build</code> (Next.js) run to confirm every route compiles
+cleanly.</li>
+<li><strong>Manual functional/smoke testing</strong> — exercising real
+flows end-to-end: creating an admin account and logging in through the
+full TOTP setup flow, submitting the contact form and confirming it
+appears in the admin panel, watching the chat stream a real response,
+etc.</li>
+<li><strong>Direct database cross-verification</strong> — for anything
+presented as “real-time” (e.g. the <code>/api/stats</code> counts), the
+numbers were independently queried straight from Postgres with a one-off
+script and compared against what the API/UI displayed.</li>
+<li><strong>Live endpoint verification</strong> — using
+<code>curl</code> against both the Next.js proxy and the Express backend
+to confirm routes return expected status codes, including confirming
+admin routes return a disguised <code>404</code> when
+unauthenticated.</li>
+</ol>
+<p><strong>Honest framing for a defense:</strong> <em>“Given the project
+timeline, testing was manual and static rather than automated —
+TypeScript’s type system plus build verification caught structural
+errors, and each feature was manually smoke-tested against the real
+database before being considered done. Given more time, the
+highest-value next step would be unit tests for the pure scoring
+functions in <code>scoring.service.ts</code> (deterministic, no I/O,
+easy to test with fixed inputs) and integration tests for the
+auth/session flow.”</em></p>
+<hr />
+<h2 id="anticipated-defense-questions-with-concise-answers">12.
+Anticipated Defense Questions (with concise answers)</h2>
+<ul>
+<li><strong>“Why raw SQL instead of an ORM like Prisma?”</strong> -&gt;
+Full control over exact queries (especially the collaborative-filtering
+CTE), no extra abstraction/build step; idempotent
+<code>CREATE TABLE IF NOT EXISTS</code> statements re-run on every boot
+instead of formal migrations.</li>
+<li><strong>“Why two servers (Next.js + Express) instead of
+one?”</strong> -&gt; Keeps the Next.js layer as a thin, deployable
+frontend/proxy while Express owns all business logic and can be
+deployed/restarted independently; made it straightforward to add
+Express-specific middleware (rate limiting, raw multipart file
+uploads).</li>
+<li><strong>“How do you prevent SQL injection?”</strong> -&gt; Every
+query uses parameterized placeholders (<code>$1, $2, ...</code>) via
+<code>pg</code>; user input is never string-concatenated into SQL.</li>
+<li><strong>“What happens if the Gemini API key is missing or the call
+fails?”</strong> -&gt; Both features (recommendations, chat) have a
+fully-functional rule-based fallback path — the app degrades gracefully
+rather than breaking.</li>
+<li><strong>“How is the admin account secured, given there’s no signup
+form?”</strong> -&gt; Only creatable via a server-side CLI script; login
+requires password + mandatory TOTP 2FA; sessions re-validated against
+the DB on every request; sensitive actions require a session younger
+than 15 minutes; login route rate-limited and every attempt logged.</li>
+<li><strong>“How does the 3D preview work?”</strong> -&gt; Vendor
+uploads a <code>.glb</code> file (validated via Multer), stored as bytes
+in Postgres or on disk under <code>/public/models</code>; rendered with
+<code>react-three-fiber</code>/<code>@react-three/drei</code>’s
+<code>useGLTF</code> inside a <code>&lt;Canvas&gt;</code>, with orbit
+controls.</li>
+<li><strong>“What’s the biggest limitation of the recommendation
+engine?”</strong> -&gt; The collaborative-filtering signal is capped low
+(max 25 points) because co-occurrence data is sparse on a small user
+base — designed to matter more as the platform grows.</li>
+<li><strong>“Is anything in the codebase legacy/unused?”</strong> -&gt;
+Yes: <code>components/ChatBot.tsx</code>,
+<code>lib/recommendationEngine.ts</code>, and
+<code>/api/chat</code>/<code>/api/trending</code> are an earlier
+prototype (mock in-memory data, no DB) superseded by Brainy and the real
+recommendation engine — still in the repo but not rendered/linked
+anywhere live.</li>
+</ul>
+<hr />
+<h2 id="suggested-demo-flow-for-defense-day">13. Suggested Demo Flow for
+Defense Day</h2>
+<ol type="1">
+<li>Show the homepage — point out the live “Featured product” and real
+product/vendor counts (open a DB client or the <code>/api/stats</code>
+endpoint side-by-side to prove it’s not hardcoded).</li>
+<li>Register a customer account, browse a few products (view, add to
+wishlist, add to cart) to generate <code>user_interactions</code>
+rows.</li>
+<li>Visit <code>/recommendations</code> — show the reason box and
+match-strength badge; explain the scoring pipeline live.</li>
+<li>Open <code>/chat</code>, ask Brainy something account-specific
+(“what have I recently viewed?”) to show it’s grounded in real data,
+then something general (“what’s a good gift for a birthday”) to show
+it’s not purely templated.</li>
+<li>Submit the contact form, then log into <code>/ops-7f3k2</code> (walk
+through the TOTP login) and show the message appearing in Contact
+Messages.</li>
+<li>Approve/reject a pending vendor product from the admin panel and
+show the corresponding entry appear in the Audit Log in real time
+(polling).</li>
+</ol>
+</body>
+</html>

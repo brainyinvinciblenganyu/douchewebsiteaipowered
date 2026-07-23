@@ -213,45 +213,21 @@ class InMemoryPool implements DbPoolLike {
   }
 }
 
-class FallbackPool implements DbPoolLike {
-  private active: DbPoolLike;
-  private fallback: DbPoolLike;
-  private usingFallback = false;
-
-  constructor(primary: DbPoolLike, fallback: DbPoolLike) {
-    this.active = primary;
-    this.fallback = fallback;
-  }
-
-  async query(text: string, params?: unknown[]) {
-    if (this.usingFallback) {
-      return this.fallback.query(text, params);
-    }
-
-    try {
-      return await this.active.query(text, params);
-    } catch (error) {
-      console.warn('Database query failed, falling back to in-memory store.', error);
-      this.usingFallback = true;
-      return this.fallback.query(text, params);
-    }
-  }
-}
-
 export function getPool(): DbPoolLike {
   if (pool) return pool;
 
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
+    // No database configured at all — explicit, intentional dev-without-a-database
+    // mode. Once DATABASE_URL is set, query failures throw instead of silently
+    // falling back here, so a real outage is never mistaken for success.
     pool = new InMemoryPool();
     return pool;
   }
 
-  const primaryPool = new Pool({
+  pool = new Pool({
     connectionString: databaseUrl,
     max: 5,
-  });
-
-  pool = new FallbackPool(primaryPool as DbPoolLike, new InMemoryPool());
+  }) as DbPoolLike;
   return pool;
 }

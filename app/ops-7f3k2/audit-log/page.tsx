@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AdminGate from '../../../components/AdminGate';
+import { usePolling } from '../../../lib/hooks/usePolling';
+
+const POLL_INTERVAL_MS = 8000;
 
 type AuditEntry = {
   id: string;
@@ -27,20 +30,23 @@ function formatDate(iso: string) {
 function AuditLogContent() {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoadedOnce = useRef(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/admin/audit-log', { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-        setEntries(Array.isArray(data.entries) ? data.entries : []);
-      } catch {
-        setEntries([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const loadEntries = async () => {
+    if (!hasLoadedOnce.current) setLoading(true);
+    try {
+      const res = await fetch('/api/admin/audit-log', { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      setEntries(Array.isArray(data.entries) ? data.entries : []);
+    } catch {
+      if (!hasLoadedOnce.current) setEntries([]);
+    } finally {
+      setLoading(false);
+      hasLoadedOnce.current = true;
+    }
+  };
+
+  usePolling(loadEntries, POLL_INTERVAL_MS);
 
   return (
     <>

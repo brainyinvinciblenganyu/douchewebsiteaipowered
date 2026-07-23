@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001';
+import { BACKEND_API_BASE_URL as BACKEND_URL } from '../../../../lib/apiConfig';
 
 export async function GET(req: NextRequest) {
   const backendRes = await fetch(`${BACKEND_URL}/api/auth/me`, {

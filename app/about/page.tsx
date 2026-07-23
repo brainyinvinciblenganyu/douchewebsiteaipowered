@@ -18,17 +18,14 @@ import {
   Truck,
   Users,
   Star,
-  Instagram,
-  Twitter,
-  Linkedin,
   CalendarCheck,
-  Mail,
   Headphones,
   Box,
   Zap,
   Store,
 } from 'lucide-react';
 import PageHero from '../../components/PageHero';
+import { usePolling } from '../../lib/hooks/usePolling';
 
 type RevealProps = {
   children: React.ReactNode;
@@ -173,35 +170,20 @@ export default function AboutPage() {
     }
   };
 
-  const team = useMemo(
-    () => [
-      {
-        name: 'Kah Kissingere',
-        position: 'CEO • Innovative Tech',
-        bio: 'Building immersive commerce experiences with practical product strategy.',
-        img: 'https://media.licdn.com/dms/image/v2/D4E03AQEHfKG3XH2i_A/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1684752297980?e=2147483647&v=beta&t=SEVx6NcqfVccsTX1xgFFnPJlnqeAZU2zMxxlpIe_P4o',
-      },
-      {
-        name: 'Nganyu Brandon',
-        position: 'Web Developer',
-        bio: 'Crafting fast, responsive interfaces and smooth customer journeys.',
-        img: 'https://scontent-los4-1.xx.fbcdn.net/v/t39.30808-6/449388383_1641209413337625_4800909064096925221_n.jpg?stp=dst-jpg_tt6&cstp=mx320x326&ctp=s320x326&_nc_cat=110&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=xg9e2bWcz_oQ7kNvwHvT2u8&_nc_oc=AdpAba_b9SIyvfS0JLEZqyXHYrVcqnoeGUrBNs-vWgqmm0-pVrqZsg8rwwlQDJChpPLqknLlpAjqTUKbib5T1d5j&_nc_zt=23&_nc_ht=scontent-los4-1.xx&_nc_gid=4bR91Wsv0zCB9VnzUuHLRQ&_nc_ss=7b289&oh=00_Af8GDvpWdL5FGFpiWPDaRiO4zflTQoBY8RSCZglKqAH0Bw&oe=6A4729E6',
-      },
-      {
-        name: 'Dr. Nde Nguti',
-        position: 'Project Supervisor',
-        bio: 'Guiding the team with mentorship and research-led execution.',
-        img: 'https://media.licdn.com/dms/image/v2/C5603AQERR8Zt2l4Dvw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1552562848958?e=2147483647&v=beta&t=bq90-C2riNOw87yK4uOQaioxPiGDCecAcdaV_mUd5Qw',
-      },
-      {
-        name: 'Engr. Beshe Nganyu Jackson',
-        position: 'Building & Construction Specialist • Owner & Co-Founder, ETJKSON Services',
-        bio: 'Ensuring quality delivery workflows from planning to shipping.',
-        img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyoAGem8obilgKKonsw89hAZR32iCbNDSv8R1MAnzWVRvINtxwa0C6_ps&s=10',
-      },
-    ],
-    [],
-  );
+  const [stats, setStats] = useState({ productCount: 0, vendorCount: 0 });
+
+  usePolling(async () => {
+    try {
+      const res = await fetch('/api/stats', { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      setStats({
+        productCount: Number(data.productCount ?? 0),
+        vendorCount: Number(data.vendorCount ?? 0),
+      });
+    } catch {
+      // Keep showing the last-known counts on a transient failure.
+    }
+  }, 30000);
 
   const testimonials = useMemo(
     () => [
@@ -511,51 +493,9 @@ export default function AboutPage() {
               <p className="mt-3 max-w-2xl text-sky-100">Proof that premium experiences scale with trust.</p>
             </Reveal>
 
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCounter value={10000} suffix="+" label="Happy Customers" />
-              <StatCounter value={500} suffix="+" label="Products" />
-              <StatCounter value={50} suffix="+" label="Countries Served" />
-              <StatCounter value={99} suffix="%" label="Customer Satisfaction" />
-            </div>
-          </PageHero>
-        </section>
-
-        {/* Section 7: Meet the Team */}
-        <section className="mx-auto max-w-7xl px-6 pb-16">
-          <PageHero>
-            <Reveal>
-              <h2 className="text-3xl font-semibold text-white">Meet the Team</h2>
-              <p className="mt-3 max-w-2xl text-sky-100">People behind the platform—focused on quality and clarity.</p>
-            </Reveal>
-
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {team.map((m) => (
-                <Reveal key={m.name}>
-                  <article className="rounded-[28px] border border-white/20 bg-white/10 p-8 backdrop-blur-sm transition hover:-translate-y-1 hover:bg-white/15">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="relative h-20 w-20 overflow-hidden rounded-full border border-white/30 bg-white/10">
-                        {/* Image placeholder */}
-                        <img src={m.img} alt={m.name} className="h-full w-full object-cover" loading="lazy" />
-                      </div>
-                      <h3 className="mt-4 text-xl font-semibold text-white">{m.name}</h3>
-                      <p className="mt-1 text-sm font-medium text-sky-100">{m.position}</p>
-                      <p className="mt-4 text-sm leading-6 text-sky-100">{m.bio}</p>
-
-                      <div className="mt-6 flex items-center gap-3" aria-label={`${m.name} social links`}>
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white" aria-hidden>
-                          <Instagram size={16} />
-                        </span>
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white" aria-hidden>
-                          <Twitter size={16} />
-                        </span>
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white" aria-hidden>
-                          <Linkedin size={16} />
-                        </span>
-                      </div>
-                    </div>
-                  </article>
-                </Reveal>
-              ))}
+            <div className="mt-8 grid gap-6 sm:grid-cols-2">
+              <StatCounter value={stats.productCount} label="Products Listed" />
+              <StatCounter value={stats.vendorCount} label="Active Vendors" />
             </div>
           </PageHero>
         </section>

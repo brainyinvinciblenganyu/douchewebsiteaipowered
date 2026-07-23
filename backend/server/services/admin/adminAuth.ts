@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 
 const SESSION_COOKIE_NAME = 'admin_session';
 const SESSION_TTL_SECONDS = Number(process.env.ADMIN_SESSION_TTL_SECONDS || '5400'); // 90 min
-const SETUP_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min, used only during first-login 2FA enrollment
+const SETUP_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min — window to scan the QR code and enter a code
 
 type SessionPayload = {
   type: 'session';
@@ -13,7 +13,7 @@ type SessionPayload = {
 };
 
 type SetupPayload = {
-  type: 'setup';
+  type: 'totp-setup';
   userId: string;
   secret: string;
   exp: number;
@@ -89,13 +89,13 @@ export function getAdminSession(req: Request): { userId: string; lastAuthAt: num
   return { userId: payload.userId, lastAuthAt: payload.lastAuthAt };
 }
 
-// Short-lived token carrying a freshly generated (not-yet-persisted) TOTP
-// secret between /admin-login (first login) and /admin-login/confirm-2fa-setup.
-// The secret only gets written to the DB once the user proves they can
-// generate a valid code with it.
+// Short-lived token carrying a freshly generated TOTP secret between the two
+// legs of enrollment (/admin-login -> /admin-login/confirm-2fa-setup). Keeps
+// the server stateless — the secret isn't persisted until the admin proves
+// they scanned it by submitting a valid code.
 export function signSetupToken(params: { userId: string; secret: string }): string {
   const payload: SetupPayload = {
-    type: 'setup',
+    type: 'totp-setup',
     userId: params.userId,
     secret: params.secret,
     exp: Date.now() + SETUP_TOKEN_TTL_MS,
@@ -105,7 +105,7 @@ export function signSetupToken(params: { userId: string; secret: string }): stri
 
 export function verifySetupToken(token: string): { userId: string; secret: string } | null {
   const payload = verify<SetupPayload>(token);
-  if (!payload || payload.type !== 'setup') return null;
+  if (!payload || payload.type !== 'totp-setup') return null;
   return { userId: payload.userId, secret: payload.secret };
 }
 

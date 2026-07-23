@@ -135,23 +135,12 @@ router.post('/', async (req: Request, res: Response) => {
     const payload = req.body ?? {};
     const uploaded = getFirstUploadedFile(req);
 
-    const cookieHeader = (() => {
-      const v = req.headers['cookie'];
-      if (Array.isArray(v)) return v.join('; ');
-      return (v ?? '').toString();
-    })();
-
     const session = getSessionFromRequest(
       req as Parameters<typeof getSessionFromRequest>[0],
     );
     const vendorUserId = session?.userId ?? null;
 
     if (!vendorUserId) {
-      console.warn('DEBUG /api/products POST unauthorized');
-      console.warn('DEBUG AUTH_COOKIE_NAME:', process.env.AUTH_COOKIE_NAME || 'session');
-      console.warn('DEBUG cookie header present:', Boolean(cookieHeader));
-      console.warn('DEBUG cookie header (truncated):', cookieHeader.slice(0, 200));
-      console.warn('DEBUG session:', session);
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -229,7 +218,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const deleted = await deleteProduct(req.params.id, String(vendorUserId));
+    const deleted = await deleteProduct(String(req.params.id), String(vendorUserId));
     if (!deleted) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -258,7 +247,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     const asset_file = uploaded ? uploaded.buffer : undefined;
 
-    const updated = await updateProduct(req.params.id, String(vendorUserId), {
+    const updated = await updateProduct(String(req.params.id), String(vendorUserId), {
 name:
         typeof payload.name === 'undefined'
           ? undefined
@@ -344,7 +333,7 @@ name:
 
 router.get('/:id/reviews', async (req: Request, res: Response) => {
   try {
-    const productId = req.params.id;
+    const productId = String(req.params.id);
     const [summary, reviews] = await Promise.all([
       getRatingSummary(productId),
       getReviewsForProduct(productId),
@@ -385,14 +374,14 @@ router.post('/:id/reviews', async (req: Request, res: Response) => {
     const body = firstString(payload.body);
 
     const review = await upsertReview({
-      productId: req.params.id,
+      productId: String(req.params.id),
       userId: session.userId,
       rating,
       title,
       body,
     });
 
-    const summary = await getRatingSummary(req.params.id);
+    const summary = await getRatingSummary(String(req.params.id));
 
     return res.status(200).json({ review, summary });
   } catch (error) {

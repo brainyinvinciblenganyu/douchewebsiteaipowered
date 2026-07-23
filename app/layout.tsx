@@ -12,7 +12,7 @@ const fontVariables = {
 export const metadata: Metadata = {
   title: "Douche • AI-Powered 3D E-Commerce",
   description: "Premium AI-powered e-commerce experience with personalized product recommendations and interactive 3D visualization.",
-  metadataBase: new URL('http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
 };
 
 export default function RootLayout({

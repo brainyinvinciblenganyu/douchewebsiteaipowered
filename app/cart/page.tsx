@@ -83,15 +83,15 @@ function CartPageContent() {
         setCartItems(normalized);
       } catch {
         setCartItems([
-          { id: 2, name: "Royal Chair", price: 75000, model: "chair.glb", quantity: 1 },
-          { id: 3, name: "Coffee Table", price: 8000, model: "coffee.glb", quantity: 2 },
+          { id: '2', name: "Royal Chair", price: 75000, model: "chair.glb", quantity: 1 },
+          { id: '3', name: "Coffee Table", price: 8000, model: "coffee.glb", quantity: 2 },
         ]);
       }
     } else {
       // Default demo items if cart is empty/new
       setCartItems([
-        { id: 2, name: "Royal Chair", price: 75000, model: "chair.glb", quantity: 1 },
-        { id: 3, name: "Coffee Table", price: 8000, model: "coffee.glb", quantity: 2 },
+        { id: '2', name: "Royal Chair", price: 75000, model: "chair.glb", quantity: 1 },
+        { id: '3', name: "Coffee Table", price: 8000, model: "coffee.glb", quantity: 2 },
       ]);
     }
     setIsLoaded(true);
@@ -166,7 +166,7 @@ function CartPageContent() {
   }, [cartItems, isLoaded]);
 
 
-  const updateQuantity = (id: number, delta: number) => {
+  const updateQuantity = (id: string, delta: number) => {
     setCartItems(items =>
       items.map(item =>
         item.id === id
@@ -176,7 +176,7 @@ function CartPageContent() {
     );
   };
 
-  const removeItem = (id: number) => {
+  const removeItem = (id: string) => {
     setCartItems(items => items.filter(item => item.id !== id));
   };
 

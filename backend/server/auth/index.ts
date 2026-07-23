@@ -41,25 +41,18 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     const parsed = loginSchema.parse(req.body);
     const email = parsed.email.trim().toLowerCase();
 
-    // Helpful debug logs to identify 401 causes (user not found vs password mismatch)
-    console.log('--- LOGIN REQUEST ---');
-    console.log('login email:', email);
-
     const user = await findUserByEmail(email);
 
     if (!user) {
-      console.warn('login failed: user not found for email');
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     const ok = await verifyPassword(parsed.password, user.password_hash);
     if (!ok) {
-      console.warn('login failed: password mismatch');
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     if (user.role === 'vendor' && !user.is_active) {
-      console.warn('login failed: vendor account suspended');
       return res.status(403).json({ success: false, message: 'Your vendor account has been suspended.' });
     }
 
@@ -78,10 +71,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
 authRouter.post('/register', async (req: Request, res: Response) => {
   try {
-    console.log('--- REGISTER REQUEST RECEIVED ---');
-    console.log('Request Body:', req.body);
     const parsed = registerSchema.parse(req.body);
-    console.log('Parsed Zod Schema:', parsed);
     const existing = await findUserByEmail(parsed.email);
     if (existing) {
       return res.status(409).json({ error: 'Email already in use' });

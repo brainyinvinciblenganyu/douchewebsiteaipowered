@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AdminGate from '../../../components/AdminGate';
 import { handleReauthRequired } from '../../../lib/adminReauth';
+import { usePolling } from '../../../lib/hooks/usePolling';
+
+const POLL_INTERVAL_MS = 8000;
 
 type Vendor = {
   id: string;
@@ -29,23 +32,23 @@ function VendorsContent() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const loadVendors = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     try {
       const res = await fetch('/api/admin/vendors', { credentials: 'include' });
       const data = await res.json().catch(() => ({}));
       setVendors(Array.isArray(data.vendors) ? data.vendors : []);
     } catch {
-      setVendors([]);
+      if (!hasLoadedOnce.current) setVendors([]);
     } finally {
       setLoading(false);
+      hasLoadedOnce.current = true;
     }
   };
 
-  useEffect(() => {
-    void loadVendors();
-  }, []);
+  usePolling(loadVendors, POLL_INTERVAL_MS);
 
   const toggleStatus = async (vendor: Vendor) => {
     setUpdatingId(vendor.id);

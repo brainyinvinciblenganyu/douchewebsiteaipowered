@@ -83,7 +83,7 @@ router.patch('/:id/cancel', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const cancelled = await cancelOrderForCustomer(req.params.id, session.userId);
+    const cancelled = await cancelOrderForCustomer(String(req.params.id), session.userId);
     if (!cancelled) {
       return res.status(409).json({ error: 'This order can no longer be cancelled.' });
     }

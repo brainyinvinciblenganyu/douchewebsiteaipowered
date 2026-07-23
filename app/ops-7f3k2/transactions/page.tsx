@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AdminGate from '../../../components/AdminGate';
+import { usePolling } from '../../../lib/hooks/usePolling';
+
+const POLL_INTERVAL_MS = 8000;
 
 type Transaction = {
   id: string;
@@ -35,20 +38,23 @@ function formatDate(iso: string) {
 function TransactionsContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoadedOnce = useRef(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/admin/transactions', { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-        setTransactions(Array.isArray(data.transactions) ? data.transactions : []);
-      } catch {
-        setTransactions([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const loadTransactions = async () => {
+    if (!hasLoadedOnce.current) setLoading(true);
+    try {
+      const res = await fetch('/api/admin/transactions', { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      setTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+    } catch {
+      if (!hasLoadedOnce.current) setTransactions([]);
+    } finally {
+      setLoading(false);
+      hasLoadedOnce.current = true;
+    }
+  };
+
+  usePolling(loadTransactions, POLL_INTERVAL_MS);
 
   return (
     <>

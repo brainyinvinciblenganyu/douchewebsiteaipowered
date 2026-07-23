@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2, Check, X } from 'lucide-react';
 import AdminGate from '../../../components/AdminGate';
 import { handleReauthRequired } from '../../../lib/adminReauth';
+import { usePolling } from '../../../lib/hooks/usePolling';
+
+const POLL_INTERVAL_MS = 8000;
 
 type PendingProduct = {
   id: string;
@@ -30,23 +33,23 @@ function ProductsContent() {
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const loadProducts = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     try {
       const res = await fetch('/api/admin/products/pending', { credentials: 'include' });
       const data = await res.json().catch(() => ({}));
       setProducts(Array.isArray(data.products) ? data.products : []);
     } catch {
-      setProducts([]);
+      if (!hasLoadedOnce.current) setProducts([]);
     } finally {
       setLoading(false);
+      hasLoadedOnce.current = true;
     }
   };
 
-  useEffect(() => {
-    void loadProducts();
-  }, []);
+  usePolling(loadProducts, POLL_INTERVAL_MS);
 
   const handleDecision = async (productId: string, decision: 'approve' | 'reject') => {
     setActingId(productId);

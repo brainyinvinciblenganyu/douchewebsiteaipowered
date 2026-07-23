@@ -7,6 +7,8 @@ import {
   setProductStatus,
   recordAuditLog,
   listAuditLog,
+  listContactMessages,
+  markContactMessageRead,
 } from '../../../lib/db/queries.js';
 import { clearAdminSessionCookie } from '../services/admin/adminAuth.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
@@ -122,6 +124,29 @@ router.patch('/products/:id/reject', requireFreshAdminSession, async (req: Reque
   } catch (error) {
     console.error('Failed to reject product', error);
     res.status(500).json({ error: 'Failed to reject product' });
+  }
+});
+
+router.get('/contact-messages', async (_req: Request, res: Response) => {
+  try {
+    const messages = await listContactMessages();
+    res.json({ messages });
+  } catch (error) {
+    console.error('Failed to list contact messages', error);
+    res.status(500).json({ error: 'Failed to load contact messages' });
+  }
+});
+
+router.patch('/contact-messages/:id/read', async (req: Request, res: Response) => {
+  try {
+    const ok = await markContactMessageRead(String(req.params.id));
+    if (!ok) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    res.status(200).json({ status: 'success' });
+  } catch (error) {
+    console.error('Failed to mark contact message read', error);
+    res.status(500).json({ error: 'Failed to update message' });
   }
 });
 

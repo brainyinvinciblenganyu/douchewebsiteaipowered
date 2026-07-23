@@ -20,7 +20,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT tr
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer', 'vendor', 'admin'));
 
--- TOTP 2FA, only ever populated for admin accounts.
+-- Admin 2FA: TOTP secret (Google Authenticator) plus one-time recovery codes.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret text;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled boolean NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_recovery_codes text[];

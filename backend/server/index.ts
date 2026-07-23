@@ -9,7 +9,6 @@ import recommendationRoutes from './routes/recommendation.routes.js';
 import productRoutes from './routes/products.routes.js';
 import orderRoutes from './routes/orders.routes.js';
 import brainyRoutes from './routes/brainy.routes.js';
-import messagesRoutes from './routes/messages.routes.js';
 import contactRoutes from './routes/contact.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import adminAuthRoutes from './routes/adminAuth.routes.js';
@@ -17,6 +16,7 @@ import vendorCustomersRoutes from './routes/vendorCustomers.routes.js';
 
 import { productAssetUpload } from './middleware/uploadProductAsset.js';
 import { initDatabase } from './db/init.js';
+import { getPublicStats } from '../../lib/db/queries.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,15 +51,26 @@ app.set('trust proxy', 1);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
+
+// Allow-list built from ALLOWED_ORIGINS (comma-separated production frontend
+// URL(s)), always including localhost for local dev. Admin login sets a
+// credentialed cookie, so reflecting *any* origin here would let any site
+// make authenticated requests on an admin's behalf.
+const allowedOrigins = new Set(
+  [
+    'http://localhost:3000',
+    ...(process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean),
+  ],
+);
+
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps, curl, or server-to-server requests)
-    if (!origin) {
+    if (!origin || allowedOrigins.has(origin)) {
       callback(null, true);
       return;
     }
-    // Reflect the requesting origin (e.g. localhost, local IPs like 192.168.x.x) to support testing
-    callback(null, true);
+    callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -76,6 +87,16 @@ app.get('/', (_req: Request, res: Response) => {
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ ok: true });
+});
+
+app.get('/api/stats', async (_req: Request, res: Response) => {
+  try {
+    const stats = await getPublicStats();
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error('Failed to load public stats', error);
+    res.status(500).json({ error: 'Failed to load stats' });
+  }
 });
 
 app.use('/api/auth', authRoutes);
@@ -96,7 +117,6 @@ app.use(
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/brainy', brainyRoutes);
-app.use('/api/messages', messagesRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/vendor/customers', vendorCustomersRoutes);

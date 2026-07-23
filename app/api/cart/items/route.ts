@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:3001';
+import { BACKEND_API_BASE_URL as BACKEND_URL } from '../../../../lib/apiConfig';
 
 // Returns live cart item details for the given product ids.
 // Body: { productIds: number[] }

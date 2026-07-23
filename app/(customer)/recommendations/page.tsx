@@ -4,7 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
 import RequireAuth from '../../../components/RequireAuth';
+import ModelViewer from '../../../components/ModelViewer';
 import { motion } from 'framer-motion';
+
+function matchStrength(score: number): { label: string; className: string } {
+  if (score >= 60) return { label: 'Strong match', className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' };
+  if (score >= 30) return { label: 'Good match', className: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300' };
+  return { label: 'Worth a look', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' };
+}
 
 interface RecommendationItem {
   id: string;
@@ -98,6 +105,7 @@ export default function RecommendationsPage() {
                   key={i} 
                   className="animate-pulse rounded-[32px] border border-slate-200/50 bg-white/60 p-6 dark:border-slate-800/50 dark:bg-slate-950/40"
                 >
+                  <div className="h-48 w-full rounded-2xl bg-slate-200 dark:bg-slate-800 mb-5" />
                   <div className="h-6 w-24 rounded bg-slate-200 dark:bg-slate-800 mb-4" />
                   <div className="h-8 w-48 rounded bg-slate-200 dark:bg-slate-800 mb-6" />
                   <div className="h-16 w-full rounded bg-slate-200 dark:bg-slate-800 mb-6" />
@@ -152,6 +160,15 @@ export default function RecommendationsPage() {
                   transition={{ duration: 0.5, delay: idx * 0.1 }}
                   className="group relative overflow-hidden rounded-[32px] border border-slate-200/70 bg-white/90 p-6 shadow-md shadow-slate-900/5 backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-950/70"
                 >
+                  <div className="relative mb-5 h-48 w-full overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-900">
+                    <ModelViewer modelUrl={`/models/${product.model}`} />
+                    <span
+                      className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-semibold ${matchStrength(product.score).className}`}
+                    >
+                      {matchStrength(product.score).label}
+                    </span>
+                  </div>
+
                   <div className="flex items-center justify-between gap-4 mb-5">
                     <div>
                       <p className="text-xs uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
