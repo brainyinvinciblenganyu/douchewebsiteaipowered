@@ -193,9 +193,8 @@ router.post('/', async (req: Request, res: Response) => {
           : payload.image_data === null
             ? null
             : String(payload.image_data),
-      // New products always start pending admin review — a vendor can't
-      // bypass approval by sending status directly in the create payload.
-      status: 'pending_review',
+      // Products are published immediately — no admin review required.
+      status: 'published',
       stock_quantity: parseStock(payload.stock_quantity) ?? 0,
     });
 
@@ -276,16 +275,11 @@ name:
         typeof payload.currency === 'undefined'
           ? undefined
           : firstString(payload.currency) ?? undefined,
-      // A vendor may take their own listing down ('draft'/'archived'), but
-      // can't self-publish — only admin approval can move a product to
-      // 'published', so a client-sent 'published' is silently ignored here.
+      // Vendor can set any status including 'published' — no admin approval needed.
       status:
         typeof payload.status === 'undefined'
           ? undefined
-          : (() => {
-              const requested = firstString(payload.status);
-              return requested === 'published' ? undefined : requested ?? undefined;
-            })(),
+          : firstString(payload.status) ?? undefined,
       stock_quantity: parseStock(payload.stock_quantity),
       asset_name:
         uploaded

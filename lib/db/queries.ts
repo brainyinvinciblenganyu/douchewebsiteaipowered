@@ -174,7 +174,7 @@ export async function createProduct(params: {
       params.asset_data ?? null,
       params.asset_file ?? null,
       params.image_data ?? null,
-      params.status ?? 'pending_review',
+      params.status ?? 'published',
       params.stock_quantity ?? 0,
     ],
   );
